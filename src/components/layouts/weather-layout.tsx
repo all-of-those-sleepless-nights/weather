@@ -24,7 +24,7 @@ export function WeatherLayout({ children }: { children: ReactNode }) {
         style={{ backgroundImage: `url(${theme === "dark" ? bgDark : bgLight})` }}
       />
 
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pb-24 pt-5 sm:gap-8 sm:px-6 sm:pb-28 sm:pt-10">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pb-16 pt-5 sm:gap-8 sm:px-6 sm:pt-10">
         <h1 className="sr-only">Today&rsquo;s Weather</h1>
         {children}
       </main>

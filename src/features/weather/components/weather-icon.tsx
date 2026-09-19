@@ -13,15 +13,26 @@ type WeatherIconProps = {
 };
 
 /**
- * How large the illustration is drawn. It lives here rather than at the call
- * site because the placeholder glyph has to be given the same size
- * explicitly: the swap wrapper centres its child instead of stretching it, so
- * an SVG asking for 100% has nothing to resolve against and collapses to its
- * intrinsic 24px. The image has no such problem — it carries its own
- * dimensions — but both need to end up the same size.
+ * How large each form of the illustration is drawn.
+ *
+ * The three boxes differ because the artwork inside them does. Measured on
+ * the supplied PNG, the solid cloud fills 87 % of the file's width and 72 %
+ * of its height — the rest is transparent margin and the glow baked into the
+ * image — so a glyph given the image's box renders half as big again and
+ * crowds the card. Each glyph is therefore sized so that its *ink* matches
+ * the illustration's: the struck-through cloud is smaller still, because its
+ * diagonal reaches both corners while the plain cloud sits in the middle.
+ *
+ * They are also why the sizes live here rather than at the call site: the
+ * swap wrapper centres its child instead of stretching it, so an SVG asking
+ * for 100 % has nothing to resolve against and collapses to its intrinsic
+ * 24px. Each glyph has to be given its size outright.
  */
-const ICON_WIDTH = "w-32 sm:w-52 lg:w-60";
-const GLYPH_SIZE = "size-32 sm:size-52 lg:size-60";
+const IMAGE_WIDTH = "w-32 sm:w-52 lg:w-60";
+const CLOUD_WIDTH = "w-28 sm:w-44 lg:w-52";
+const CLOUD_OFF_WIDTH = "w-24 sm:w-36 lg:w-44";
+const CLOUD_SIZE = "size-28 sm:size-44 lg:size-52";
+const CLOUD_OFF_SIZE = "size-24 sm:size-36 lg:size-44";
 
 /**
  * The illustration overlapping the card.
@@ -42,8 +53,6 @@ export function WeatherIcon({
   isError = false,
   className,
 }: WeatherIconProps) {
-  const box = cn(ICON_WIDTH, className);
-
   if (!iconCode) {
     const PlaceholderIcon = isError ? CloudOff : Cloud;
 
@@ -51,7 +60,7 @@ export function WeatherIcon({
       <IconSwap
         swapKey={isError ? "error" : "empty"}
         variant="lift"
-        className={box}
+        className={cn(isError ? CLOUD_OFF_WIDTH : CLOUD_WIDTH, className)}
       >
         <PlaceholderIcon
           // A glyph drawn this large keeps its 24px viewBox, so the default
@@ -59,7 +68,7 @@ export function WeatherIcon({
           // illustration it stands in for.
           strokeWidth={0.75}
           className={cn(
-            GLYPH_SIZE,
+            isError ? CLOUD_OFF_SIZE : CLOUD_SIZE,
             isError ? "text-destructive" : "text-foreground",
           )}
           aria-hidden="true"
@@ -71,7 +80,11 @@ export function WeatherIcon({
   const source = weatherIconFor(iconCode);
 
   return (
-    <IconSwap swapKey={source} variant="lift" className={box}>
+    <IconSwap
+      swapKey={source}
+      variant="lift"
+      className={cn(IMAGE_WIDTH, className)}
+    >
       <img
         src={source}
         alt={description ?? ""}

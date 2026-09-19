@@ -114,7 +114,7 @@ export function WeatherSearchForm({
       onSubmit={handleSubmit}
       className="flex min-w-0 flex-1 items-start gap-3"
     >
-      <div className="min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1">
         <div className="relative">
           <label
             htmlFor={inputId}
@@ -155,6 +155,8 @@ export function WeatherSearchForm({
           ) : null}
         </div>
 
+        {/* Positioned out of flow: a message that appears for two seconds
+            should not shift the card down and back up again. */}
         <AnimatePresence initial={false}>
           {error ? (
             <m.p
@@ -165,7 +167,7 @@ export function WeatherSearchForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="mt-2 px-1 text-sm text-destructive"
+              className="absolute left-0 top-full z-20 mt-2 px-1 text-sm text-destructive"
             >
               {error.message}
             </m.p>

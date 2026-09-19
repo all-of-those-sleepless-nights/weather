@@ -68,7 +68,7 @@ export default function TodayWeather({
     <WeatherLayout>
       {/* Both controls are the same square: the theme switch leads the row,
           the submit button closes it. */}
-      <div className="flex w-full items-start gap-3">
+      <div className="relative z-20 flex w-full items-start gap-3">
         <ThemeToggle />
         <WeatherSearchForm onSearch={handleSearch} isSearching={isFetching} />
       </div>

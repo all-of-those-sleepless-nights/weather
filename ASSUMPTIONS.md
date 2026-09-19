@@ -64,7 +64,9 @@ Reverting is one import and re-chaining the calls.
 fix a keystroke, not a state of the page: once it has been read it is only in
 the way of the field it points at. Raising the same message again restarts
 the clock, so submitting an empty field twice shows it twice rather than
-appearing to do nothing.
+appearing to do nothing. It is positioned out of flow beneath the field —
+something on screen for two seconds should not push the card down and pull it
+back up again.
 
 **A clear button appears once there is something to clear.** It sits over the
 pill's right padding as a sibling of the label rather than inside it: a
@@ -82,6 +84,8 @@ phone that already scrolls.
 
 **A button in the bottom-right corner returns to the top**, appearing only
 once the page has moved more than 240px so it never covers a card that fits.
+It is fixed to the viewport and floats over the page's bottom padding rather
+than reserving a band of its own.
 It scrolls through the same Lenis instance that owns the page's smooth
 scrolling — a native smooth scroll running against Lenis's own loop reads as
 a stutter — and falls back to an instant native scroll when reduced motion
@@ -156,12 +160,20 @@ onwards (`04` and the rain, snow, thunderstorm and fog groups) uses the cloud.
 The condition text is always shown alongside, so no information depends on
 the illustration.
 
-**Without a reading the illustration is a line glyph at the same size:** a
-plain cloud while there is nothing to show, a struck-through cloud in the
-error colour when a lookup failed. Using one of the two weather images would
-claim a sky the app has not been told about. Both glyphs are decoration and
-carry no text alternative — the card's own line already says what happened,
-and a screen reader should not hear it twice.
+**Without a reading the illustration is a line glyph:** a plain cloud while
+there is nothing to show, a struck-through cloud in the error colour when a
+lookup failed. Using one of the two weather images would claim a sky the app
+has not been told about. Both glyphs are decoration and carry no text
+alternative — the card's own line already says what happened, and a screen
+reader should not hear it twice.
+
+**The glyphs are sized by their ink, not by the image's box.** Measured on
+the supplied PNG, the solid cloud fills 87 % of the file's width and 72 % of
+its height; the rest is transparent margin and the glow baked into the image.
+A glyph given that same box therefore draws half as big again and crowds the
+card. Each is sized so its drawn extent matches the illustration's instead,
+and the struck-through cloud is smaller still because its diagonal reaches
+both corners while the plain cloud sits in the middle.
 
 **Backgrounds were re-encoded as JPEG** (roughly 900 KB each as supplied,
 about 160 KB after). A flat colour sits behind them so layout never depends on
