@@ -18,7 +18,7 @@
  * class, so each can be restyled without touching the others:
  *   fill   -> bg-surface-card / bg-surface-row / ...
  *   material -> the `glass` utility (blur + shadow)
- *   edge   -> border-glass / border-input
+ *   edge     -> border-glass-border
  */
 
 :root {
@@ -51,8 +51,11 @@
      recessed in light, raised in dark. An alias keeps it out of the scale. */
   --surface-input: var(--surface-recessed);
 
+  /* One edge for the whole material. Figma draws the search bar with a solid
+     #000000 rule, but rendered over the photograph it reads as a hard outline
+     next to the hairline on every other glass surface, so it shares this
+     token — see ASSUMPTIONS.md. */
   --glass-border: rgb(255 255 255 / 0.5); /* #FFFFFF80 */
-  --input-border: rgb(0 0 0 / 1);
 
   --foreground: rgb(var(--ink));
   --muted-foreground: rgb(var(--ink-muted) / var(--alpha-ink-muted));
@@ -84,7 +87,6 @@
   --surface-input: var(--surface-raised);
 
   --glass-border: rgb(255 255 255 / 0.1);
-  --input-border: rgb(255 255 255 / 0.1);
 
   --accent-text: rgb(255 255 255);
   --ring: rgb(255 255 255 / 0.8);
@@ -102,7 +104,6 @@
   --color-surface-input: var(--surface-input);
 
   --color-glass-border: var(--glass-border);
-  --color-input-border: var(--input-border);
 
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
@@ -126,7 +127,7 @@
      Button and Input actually use is defined. */
   --color-background: var(--surface-card);
   --color-border: var(--glass-border);
-  --color-input: var(--input-border);
+  --color-input: var(--glass-border);
   --color-muted: var(--surface-raised);
   --color-secondary: var(--surface-raised);
   --color-secondary-foreground: var(--foreground);

@@ -126,6 +126,16 @@ Light-theme secondary text was darkened from the Figma's `#666666` to
 `#444444` to clear WCAG AA against the photographic backdrop; the measurement
 is in ASSUMPTIONS.md.
 
+## Motion
+
+Three icon transitions — theme toggle, search-to-spinner, and the weather
+illustration — run through one `IconSwap` component rather than three bespoke
+animations. Motion is loaded through `LazyMotion` with the `m` component and
+the DOM-animation feature bundle, which keeps roughly 14 kB gzipped of
+animation features in a separate chunk instead of the critical path; `strict`
+mode throws if a component reaches for the eager `motion` export by mistake.
+Under `prefers-reduced-motion` the animation wrapper is not rendered at all.
+
 ## Testing
 
 41 tests. The emphasis is on the boundaries where this kind of app actually

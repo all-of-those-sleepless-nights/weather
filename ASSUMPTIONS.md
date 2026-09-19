@@ -99,6 +99,39 @@ specified. Hierarchy between a place name and its timestamp comes from weight
 and size instead. `--alpha-ink-muted` is in the token set as the single knob
 if that should change.
 
+**The search bar shares the glass border rather than carrying its own.** Figma
+specifies a 1 px solid `#000000` rule on the light-theme input. Rendered over
+the photographic backdrop it reads as a hard outline beside the white hairline
+on the card, the history panel and every row — the one edge in the composition
+that does not look like the same material. The likeliest explanation is layer
+opacity applied above the stroke colour, which would not appear in the copied
+value. It now uses `--glass-border` in both themes, which leaves the design
+with a single edge token; the dark theme is unaffected, since both values were
+already `#FFFFFF1A`.
+
+## Motion
+
+**Icon changes cross-fade rather than cut.** The theme toggle, the search
+button's magnifier-to-spinner, and the weather illustration all swap through
+`IconSwap` (`src/components/motion/icon-swap.tsx`), which overlaps the
+outgoing and incoming icons in one grid cell while rotating or lifting them
+past each other.
+
+This is not a true morph, and the distinction is worth stating: Framer Motion
+interpolates transforms and opacity, not SVG path geometry. Morphing one path
+into another needs a dedicated interpolator such as flubber and only works on
+single-path shapes, which these Lucide glyphs are not; the weather
+illustrations are raster PNGs with no geometry to interpolate at all. An
+overlapping cross-fade is what reads as a single transformation here.
+
+**The illustration is keyed on the resolved image, not the condition code,**
+so moving between two conditions that share an illustration — clear sky to few
+clouds — updates the alternative text without animating an identical picture.
+
+**Under `prefers-reduced-motion` the presence wrapper is dropped entirely**
+rather than merely shortened, so exactly one icon exists in the accessibility
+tree at all times.
+
 ## Scope
 
 **No pagination.** React Query is used for caching, request de-duplication,

@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent } from "react";
-import { Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconSwap } from "@/components/motion/icon-swap";
 import { parsePlaceQuery } from "../model/parse-place-query";
 import type { PlaceQuery } from "../model/types";
 
@@ -46,7 +47,7 @@ export function WeatherSearchForm({
       className="flex w-full items-start gap-3"
     >
       <div className="min-w-0 flex-1">
-        <div className="glass rounded-row border border-input-border bg-surface-input px-4 py-2">
+        <div className="glass rounded-row border border-glass-border bg-surface-input px-4 py-2">
           <label
             htmlFor={inputId}
             className="block text-[0.625rem] leading-tight text-muted-foreground"
@@ -81,10 +82,19 @@ export function WeatherSearchForm({
         type="submit"
         size="icon-lg"
         disabled={isSearching}
+        aria-busy={isSearching}
         aria-label="Search for weather"
-        className="size-[3.25rem] shrink-0 rounded-row bg-primary text-primary-foreground shadow-[var(--shadow-glass)] hover:bg-primary/90"
+        // The button dims while disabled, which would bury the spinner it is
+        // disabled in order to show; the busy state opts back out of that.
+        className="size-[3.25rem] shrink-0 rounded-row bg-primary text-primary-foreground shadow-[var(--shadow-glass)] hover:bg-primary/90 aria-busy:disabled:opacity-100"
       >
-        <Search className="size-5" aria-hidden="true" />
+        <IconSwap swapKey={isSearching ? "busy" : "idle"} className="size-5">
+          {isSearching ? (
+            <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+          ) : (
+            <Search className="size-5" aria-hidden="true" />
+          )}
+        </IconSwap>
       </Button>
     </form>
   );
