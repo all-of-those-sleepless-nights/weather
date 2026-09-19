@@ -1,0 +1,179 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+/* Dark mode is driven by a `.dark` class on <html>, set by the theme provider. */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * DESIGN TOKENS
+ *
+ * Three tiers, so that a component never names a colour — only a role:
+ *   1. primitives  raw channels + the alpha scale
+ *   2. roles       semantic names composed from primitives
+ *   3. mapping     @theme inline, which turns roles into Tailwind utilities
+ *
+ * Glassmorphism is treated as three independent axes rather than one bundled
+ * class, so each can be restyled without touching the others:
+ *   fill   -> bg-surface-card / bg-surface-row / ...
+ *   material -> the `glass` utility (blur + shadow)
+ *   edge   -> border-glass / border-input
+ */
+
+:root {
+  /* ---- tier 1: primitives ------------------------------------------- */
+
+  /* Every translucent surface in the light theme is white at one of two
+     alpha steps. Changing the whole material's translucency is a two-line
+     edit here and in .dark below. */
+  --tint-surface: 255 255 255;            /* #FFFFFF */
+  --alpha-recessed: 0.2;                  /* Figma 33 */
+  --alpha-raised: 0.4;                    /* Figma 66 */
+  --blur-glass: 20px;
+
+  --ink: 0 0 0;                           /* #000000 */
+  --ink-muted: 68 68 68;                  /* #444444, darkened from Figma's
+                                             #666666 to clear WCAG AA — see
+                                             ASSUMPTIONS.md */
+  --alpha-ink-muted: 1;
+  --violet: 108 64 181;                   /* #6C40B5 */
+
+  /* ---- tier 2: semantic roles --------------------------------------- */
+
+  --surface-recessed: rgb(var(--tint-surface) / var(--alpha-recessed));
+  --surface-raised: rgb(var(--tint-surface) / var(--alpha-raised));
+
+  --surface-card: var(--surface-recessed);
+  --surface-panel: var(--surface-recessed);
+  --surface-row: var(--surface-raised);
+  /* The search bar is the one surface that changes elevation between themes:
+     recessed in light, raised in dark. An alias keeps it out of the scale. */
+  --surface-input: var(--surface-recessed);
+
+  --glass-border: rgb(255 255 255 / 0.5); /* #FFFFFF80 */
+  --input-border: rgb(0 0 0 / 1);
+
+  --foreground: rgb(var(--ink));
+  --muted-foreground: rgb(var(--ink-muted) / var(--alpha-ink-muted));
+  /* `highlight` in Figma carries two roles that diverge in dark mode: the
+     search button's fill goes darker, the temperature text goes lighter. */
+  --accent-text: rgb(var(--violet));
+  --primary: rgb(var(--violet));
+  --primary-foreground: rgb(255 255 255);
+
+  --ring: rgb(var(--violet));
+  --destructive: rgb(190 40 40);
+
+  --shadow-glass: 0 8px 32px rgb(0 0 0 / 0.12);
+  --radius: 0.75rem;
+  --radius-card: 1.5rem;
+  --radius-row: 0.875rem;
+}
+
+.dark {
+  --tint-surface: 26 26 26;               /* #1A1A1A */
+  --alpha-recessed: 0.3;                  /* Figma 4D */
+  --alpha-raised: 0.5;                    /* Figma 80 */
+
+  --ink: 255 255 255;
+  --ink-muted: 255 255 255;
+  --alpha-ink-muted: 1;                   /* per Figma, secondary == primary */
+  --violet: 40 18 77;                     /* #28124D */
+
+  --surface-input: var(--surface-raised);
+
+  --glass-border: rgb(255 255 255 / 0.1);
+  --input-border: rgb(255 255 255 / 0.1);
+
+  --accent-text: rgb(255 255 255);
+  --ring: rgb(255 255 255 / 0.8);
+  --destructive: rgb(248 113 113);
+
+  --shadow-glass: 0 8px 32px rgb(0 0 0 / 0.4);
+}
+
+/* ---- tier 3: Tailwind mapping --------------------------------------- */
+
+@theme inline {
+  --color-surface-card: var(--surface-card);
+  --color-surface-panel: var(--surface-panel);
+  --color-surface-row: var(--surface-row);
+  --color-surface-input: var(--surface-input);
+
+  --color-glass-border: var(--glass-border);
+  --color-input-border: var(--input-border);
+
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-text: var(--accent-text);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+
+  --radius-card: var(--radius-card);
+  --radius-row: var(--radius-row);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+
+  /* Names the shadcn primitives reference, pointed back at the palette above
+     so there is still one source of truth per colour. Only the handful the
+     Button and Input actually use is defined. */
+  --color-background: var(--surface-card);
+  --color-border: var(--glass-border);
+  --color-input: var(--input-border);
+  --color-muted: var(--surface-raised);
+  --color-secondary: var(--surface-raised);
+  --color-secondary-foreground: var(--foreground);
+}
+
+
+/*
+ * The frosted material: blur plus shadow, with fill and border left to
+ * separate utilities.
+ *
+ * `backdrop-filter` compounds when nested — a blurred child of a blurred
+ * parent blurs twice and costs an extra composited layer each time. The
+ * history panel and its rows sit inside the weather card, so only the
+ * outermost card and the standalone search bar carry this utility. Over an
+ * already-blurred backdrop the inner surfaces look identical without it.
+ */
+@utility glass {
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  box-shadow: var(--shadow-glass);
+}
+
+@layer base {
+  * {
+    border-color: var(--glass-border);
+  }
+
+  body {
+    background-color: rgb(var(--violet));
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Honour the OS setting rather than animating regardless. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
