@@ -13,7 +13,7 @@ import type { PlaceQuery } from "./types";
  * rule because it is the boundary the rest of the app trusts, and it has to
  * hold for a pasted or programmatic value too.
  */
-const PLACE_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} '’.-]*$/u;
+const PLACE_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} '’-]*$/u;
 
 const MAX_CITY_LENGTH = 80;
 const MAX_COUNTRY_LENGTH = 60;

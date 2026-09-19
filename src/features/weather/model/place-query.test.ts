@@ -39,7 +39,10 @@ describe("validatePlaceQuery", () => {
     expect(validatePlaceQuery("Ōsaka, JP").ok).toBe(true);
     expect(validatePlaceQuery("Tokusan-ri, KR").ok).toBe(true);
     expect(validatePlaceQuery("L'Aquila, IT").ok).toBe(true);
-    expect(validatePlaceQuery("St. Louis, US").ok).toBe(true);
+  });
+
+  it("rejects a full stop, which the mask turns into the separator", () => {
+    expect(message("St. Louis")).toMatch(/letters, spaces/i);
   });
 
   it("rejects a blank city", () => {

@@ -1,10 +1,12 @@
 import {
+  useEffect,
   useId,
   useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
 } from "react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { Loader2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconSwap } from "@/components/motion/icon-swap";
@@ -16,6 +18,18 @@ type WeatherSearchFormProps = {
   onSearch: (query: PlaceQuery) => void;
   isSearching?: boolean;
 };
+
+/**
+ * How long a validation message stays up.
+ *
+ * It is a prompt to fix a keystroke, not a state of the page: once it has
+ * been read it is in the way of the field it is pointing at. The id beside it
+ * restarts the clock when the same message is raised again, so submitting an
+ * empty field twice shows it twice.
+ */
+const ERROR_VISIBLE_MS = 2000;
+
+type ValidationError = { id: number; message: string };
 
 /**
  * The floating search bar.
@@ -37,10 +51,19 @@ export function WeatherSearchForm({
   isSearching = false,
 }: WeatherSearchFormProps) {
   const inputId = useId();
-  const errorId = useId();
+  const messageId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ValidationError | null>(null);
+  const errorCount = useRef(0);
+  const prefersReducedMotion = useReducedMotion();
+
+  const errorId = error?.id;
+  useEffect(() => {
+    if (errorId === undefined) return;
+    const timer = setTimeout(() => setError(null), ERROR_VISIBLE_MS);
+    return () => clearTimeout(timer);
+  }, [errorId]);
 
   /**
    * Masking rewrites what was typed, which would otherwise throw the caret to
@@ -76,7 +99,8 @@ export function WeatherSearchForm({
     const result = validatePlaceQuery(value);
 
     if (!result.ok) {
-      setError(result.message);
+      errorCount.current += 1;
+      setError({ id: errorCount.current, message: result.message });
       return;
     }
 
@@ -109,7 +133,7 @@ export function WeatherSearchForm({
               value={value}
               onChange={handleChange}
               aria-invalid={error !== null}
-              aria-describedby={error ? errorId : undefined}
+              aria-describedby={error ? messageId : undefined}
               className="w-full border-0 bg-transparent p-0 text-base text-foreground outline-none placeholder:text-muted-foreground/70"
             />
           </label>
@@ -131,15 +155,22 @@ export function WeatherSearchForm({
           ) : null}
         </div>
 
-        {error ? (
-          <p
-            id={errorId}
-            role="alert"
-            className="mt-2 px-1 text-sm text-destructive"
-          >
-            {error}
-          </p>
-        ) : null}
+        <AnimatePresence initial={false}>
+          {error ? (
+            <m.p
+              key={error.id}
+              id={messageId}
+              role="alert"
+              initial={prefersReducedMotion ? false : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="mt-2 px-1 text-sm text-destructive"
+            >
+              {error.message}
+            </m.p>
+          ) : null}
+        </AnimatePresence>
       </div>
 
       <Button

@@ -21,11 +21,19 @@ survives — a second does nothing rather than building a query no geocoder can
 answer. So `Johor/MY`, `Johor;MY` and `Johor,MY` all arrive the same way and
 the comma never has to be reached for deliberately.
 
-Letters in any script, spaces, and the hyphen, apostrophe and full stop that
-turn up in "Stratford-upon-Avon", "L'Aquila" and "St. Louis" are kept.
-Everything else — including digits — is treated as a separator. Because the
-mask is a left-to-right scan, masking the text before the caret gives its new
-position exactly, so editing mid-string does not throw the cursor to the end.
+Letters in any script, spaces, and the hyphen and apostrophe that turn up in
+"Stratford-upon-Avon" and "L'Aquila" are kept. Everything else — including
+digits and the full stop — is treated as a separator. Because the mask is a
+left-to-right scan, masking the text before the caret gives its new position
+exactly, so editing mid-string does not throw the cursor to the end.
+
+**The full stop is not a place character**, although "St. Louis" contains
+one. It is punctuation the name can do without — the geocoder answers
+"St Louis" — and keeping it meant the most obvious special character was the
+one the mask let through. The cost is stated plainly: typing `St. Louis` now
+yields `St, Louis`, and that city has to be entered without the stop. The
+hyphen and apostrophe stay, because "Stratford-upon-Avon" and "L'Aquila"
+cannot be typed at all without them.
 
 No space is inserted after the separator. Auto-inserting one makes backspace
 appear broken: deleting the space leaves an input the mask immediately
@@ -52,6 +60,12 @@ full package costs 24.2 kB gzipped against 5.5 kB for mini — a 13 % swing on
 a 145 kB bundle for validating one form, which is not a good trade on mobile.
 Reverting is one import and re-chaining the calls.
 
+**A validation message shows for two seconds and fades.** It is a prompt to
+fix a keystroke, not a state of the page: once it has been read it is only in
+the way of the field it points at. Raising the same message again restarts
+the clock, so submitting an empty field twice shows it twice rather than
+appearing to do nothing.
+
 **A clear button appears once there is something to clear.** It sits over the
 pill's right padding as a sibling of the label rather than inside it: a
 button nested in a label is invalid HTML, and a click on it would then count
@@ -60,15 +74,18 @@ it is the start of retyping rather than the end of the interaction.
 
 ## Layout
 
-**The composition fills the viewport and the page itself never scrolls.** The
-search row and the reading take the height they need and the history panel
-absorbs the rest, scrolling its own list. The alternative — letting the
-document grow — pushed the card off the top of the screen as the history
-filled up, which is the one thing on the page that should stay put.
+**The page scrolls as one document.** The card grows with its history rather
+than pinning itself to the viewport and scrolling a panel inside itself. A
+card that fills the screen whatever it contains is mostly empty space on a
+first visit, and an inner scroll region is a second thing to scroll on a
+phone that already scrolls.
 
-A consequence worth naming: the card is as tall as the viewport allows, so
-with a short history the panel is mostly empty space. That is the trade for
-never moving the reading.
+**A button in the bottom-right corner returns to the top**, appearing only
+once the page has moved more than 240px so it never covers a card that fits.
+It scrolls through the same Lenis instance that owns the page's smooth
+scrolling — a native smooth scroll running against Lenis's own loop reads as
+a stutter — and falls back to an instant native scroll when reduced motion
+has turned Lenis off.
 
 ## Search history
 
@@ -110,19 +127,20 @@ depending on who is looking at it. Search-history timestamps, by contrast,
 record when *this user* searched, so they are shown in the viewer's own
 timezone.
 
-**The card keeps its shape when there is nothing to put in it.** Before the
-first search, and after a failed one, every value shows a dash with its label
-left in place and the default illustration stands in at full size. A card
-that shows what a reading will contain beats a card that collapses to a
-sentence, and there is no second layout for the reading to cross-fade from
-when it arrives. The loading skeleton was removed along with it: the
-placeholders already hold the shape, so the card dims rather than being
-replaced.
+**With no reading, the values are left out rather than filled in.** Before the
+first search, and after a failed one, the card shows its heading, its
+illustration and one line saying why there is nothing there. A column of
+dashes was tried and removed: it is noise that reads as a broken card rather
+than an empty one.
 
-**The error message sits in the card's status line**, under the heading and
-above the dashes, rather than replacing the card. Its width is capped short
-of the illustration, which overlaps the top-right corner and would otherwise
-swallow the end of a long message.
+**The loading skeleton went with it.** The previous reading stays on screen,
+dimmed, while the next loads, so the only case a skeleton covered was the
+very first search — one frame of grey bars before the card fills in.
+
+**The error message sits in the card's status line**, under the heading,
+rather than replacing the card. Its width is capped short of the
+illustration, which overlaps the top-right corner and would otherwise swallow
+the end of a long message.
 
 **Place names come from the geocoder, not the weather response.** The weather
 endpoint reports the nearest reporting station, which can carry a different
@@ -138,10 +156,12 @@ onwards (`04` and the rain, snow, thunderstorm and fog groups) uses the cloud.
 The condition text is always shown alongside, so no information depends on
 the illustration.
 
-**The sun-behind-cloud doubles as the placeholder,** shown at the same size
-before the first search and after a failed one. It carries an empty `alt`
-there: with no reading to describe it is decoration, and a screen reader
-should skip it rather than announce a condition the card is not reporting.
+**Without a reading the illustration is a line glyph at the same size:** a
+plain cloud while there is nothing to show, a struck-through cloud in the
+error colour when a lookup failed. Using one of the two weather images would
+claim a sky the app has not been told about. Both glyphs are decoration and
+carry no text alternative — the card's own line already says what happened,
+and a screen reader should not hear it twice.
 
 **Backgrounds were re-encoded as JPEG** (roughly 900 KB each as supplied,
 about 160 KB after). A flat colour sits behind them so layout never depends on

@@ -68,21 +68,16 @@ export default function TodayWeather({
     <WeatherLayout>
       {/* Both controls are the same square: the theme switch leads the row,
           the submit button closes it. */}
-      <div className="flex w-full shrink-0 items-start gap-3">
+      <div className="flex w-full items-start gap-3">
         <ThemeToggle />
         <WeatherSearchForm onSearch={handleSearch} isSearching={isFetching} />
       </div>
 
-      <WeatherCard snapshot={snapshot}>
-        {/* One card in every state. The reading keeps its labels and shows a
-            dash per value until there is something to put there, so nothing
-            below it moves when a search lands or fails. */}
-        <div
-          role="status"
-          aria-live="polite"
-          aria-busy={isFetching}
-          className="shrink-0"
-        >
+      <WeatherCard snapshot={snapshot} hasError={Boolean(error)}>
+        {/* One card in every state: the heading and the illustration stay put,
+            and the line under the heading carries the prompt or the failure
+            while there is no reading to show. */}
+        <div role="status" aria-live="polite" aria-busy={isFetching}>
           <WeatherSummary
             snapshot={snapshot}
             isStale={isFetching}

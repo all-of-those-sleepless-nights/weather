@@ -22,8 +22,12 @@ describe("maskPlaceInput", () => {
   it("preserves the punctuation real place names carry", () => {
     expect(maskPlaceInput("Stratford-upon-Avon")).toBe("Stratford-upon-Avon");
     expect(maskPlaceInput("L'Aquila")).toBe("L'Aquila");
-    expect(maskPlaceInput("St. Louis")).toBe("St. Louis");
     expect(maskPlaceInput("Ōsaka")).toBe("Ōsaka");
+  });
+
+  it("treats a full stop as a separator like any other punctuation", () => {
+    expect(maskPlaceInput("Johor.MY")).toBe("Johor,MY");
+    expect(maskPlaceInput("Johor..MY")).toBe("Johor,MY");
   });
 
   it("is prefix-stable, which is what keeps the caret in place", () => {

@@ -1,10 +1,15 @@
 /**
  * Characters that legitimately appear in a place name: letters in any script,
  * the combining marks that go with them, spaces for multi-word names, and the
- * hyphen, apostrophe and full stop that turn up in "Stratford-upon-Avon",
- * "L'Aquila" and "St. Louis".
+ * hyphen and apostrophe that turn up in "Stratford-upon-Avon" and "L'Aquila".
+ *
+ * The full stop is deliberately not one of them. It is punctuation a place
+ * name can do without — "St Louis" resolves as readily as "St. Louis" — and
+ * leaving it in meant the one obvious special character survived a mask whose
+ * whole job is to reject them. The hyphen and apostrophe stay because without
+ * them those two names cannot be typed at all.
  */
-const PLACE_CHARACTER = /[\p{L}\p{M} '’.-]/u;
+const PLACE_CHARACTER = /[\p{L}\p{M} '’-]/u;
 
 export const PLACE_SEPARATOR = ",";
 

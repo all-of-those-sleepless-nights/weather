@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import {
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw-server";
@@ -25,14 +29,14 @@ describe("Today's Weather", () => {
     expect(screen.getByText(/search for a city/i)).toBeInTheDocument();
   });
 
-  it("keeps every label with a dash in place of the value it has no reading for", () => {
+  it("shows no readings at all until there is one", () => {
     renderApp(<TodayWeather />);
 
-    expect(screen.getByText("H: - L: -")).toBeInTheDocument();
-    expect(screen.getByText("Humidity: -")).toBeInTheDocument();
+    expect(screen.queryByText(/^humidity/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^H:/)).not.toBeInTheDocument();
   });
 
-  it("falls back to the placeholders when a search fails", async () => {
+  it("drops the reading when a search fails", async () => {
     renderApp(<TodayWeather />);
     await search("Johor, MY");
     await screen.findByText("26°");
@@ -40,7 +44,7 @@ describe("Today's Weather", () => {
     await search("Asdfgh, ZZ");
 
     expect(await screen.findByText(/couldn't find/i)).toBeInTheDocument();
-    expect(screen.getByText("Humidity: -")).toBeInTheDocument();
+    expect(screen.queryByText(/^humidity/i)).not.toBeInTheDocument();
   });
 
   it("clears the field with its clear button", async () => {
@@ -129,6 +133,17 @@ describe("Today's Weather", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/enter a city/i);
     expect(onGeocode).not.toHaveBeenCalled();
+  });
+
+  it("takes the validation message down rather than leaving it up", async () => {
+    renderApp(<TodayWeather />);
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: /search for weather/i }),
+    );
+
+    const message = await screen.findByRole("alert");
+    await waitForElementToBeRemoved(message, { timeout: 4000 });
   });
 
   it("recovers to a successful reading after a failed search", async () => {
