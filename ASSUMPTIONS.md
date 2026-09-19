@@ -6,43 +6,51 @@ mockup, with the reasoning behind each.
 
 ## Search input
 
-**Two fields inside one pill, with the comma printed between them.** The
-mockup shows a single field float-labelled "Country", while requirement 2 asks
-the user to input a city *and* a country name. Both are captured without
-adding a second visible control: the pill holds a city box and a two-character
-country box with a static `,` between them, so the separator is furniture
-rather than something to remember to type. The silhouette still matches the
-mockup and `Singapore, SG` reads as one phrase.
+**One field accepting `City, Country`, with the separator typed for you.**
+The mockup shows a single field float-labelled "Country", while requirement 2
+asks the user to input a city *and* a country name. The field takes both and
+splits on the first comma; the visible label reads "City, Country" so the
+format is discoverable without relying on the placeholder.
 
-The city box uses `field-sizing: content` so it grows with what is typed and
-the comma stays against the name. Where that property is unsupported the
-`size` attribute holds a sensible width and the layout still reads correctly.
+**The whole pill is the label,** so clicking anywhere inside it focuses the
+field rather than only the line the text sits on.
 
-The two boxes share one visible group label, and each carries its own
-screen-reader label ("City", "Country code") so neither is announced as
-unlabelled.
+**Any character that cannot appear in a place name becomes the separator**
+(`src/features/weather/model/place-input-mask.ts`), and only the first one
+survives — a second does nothing rather than building a query no geocoder can
+answer. So `Johor/MY`, `Johor;MY` and `Johor,MY` all arrive the same way and
+the comma never has to be reached for deliberately.
 
-**The country is optional.** `Singapore` works as well as `Singapore, SG`;
-the geocoder resolves the best match. Rejecting a bare city would be a
-restriction the brief does not ask for.
+Letters in any script, spaces, and the hyphen, apostrophe and full stop that
+turn up in "Stratford-upon-Avon", "L'Aquila" and "St. Louis" are kept.
+Everything else — including digits — is treated as a separator. Because the
+mask is a left-to-right scan, masking the text before the caret gives its new
+position exactly, so editing mid-string does not throw the cursor to the end.
 
-**The country must be an ISO 3166-1 alpha-2 code** when given — `MY`, not
-`Malaysia` — which is what the OpenWeather geocoder matches on. The field is
-capped at two characters and upper-cased on submit.
+No space is inserted after the separator. Auto-inserting one makes backspace
+appear broken: deleting the space leaves an input the mask immediately
+restores. Typing a space is preserved, and whitespace is collapsed before the
+value is used.
+
+**The country is optional and free-form.** `Singapore` works as well as
+`Singapore, SG`, and the geocoder resolves `Malaysia` as readily as `MY`, so
+the spelled-out name is accepted rather than rejected in favour of an ISO
+code. The place shown on the card comes from the geocoder's response, so a
+search for `Johor, Malaysia` still displays `Johor, MY`.
+
+**Input is validated with Zod before any request is made**
+(`src/features/weather/model/place-query.ts`). The schema normalises first —
+trimming and collapsing runs of whitespace — then validates, so
+`"  kuala   lumpur "` and `"Kuala Lumpur"` reach both the geocoder and the
+query cache identically. It repeats the rule the mask already enforces,
+because the schema is the boundary the rest of the app trusts and has to hold
+for a pasted or programmatic value too.
 
 **Zod is imported as `zod/mini`.** Same validators, composed with `z.pipe`
 instead of method chaining, and tree-shakeable. Measured on this bundle the
 full package costs 24.2 kB gzipped against 5.5 kB for mini — a 13 % swing on
-a 145 kB bundle for validating two text fields, which is not a good trade on
-mobile. Reverting is one import and re-chaining the calls.
-
-**Input is validated with Zod before any request is made**
-(`src/features/weather/model/place-query.ts`). The schema normalises first —
-trimming and collapsing runs of whitespace, upper-casing the country — then
-validates, so `"  kuala   lumpur "` and `"Kuala Lumpur"` reach both the
-geocoder and the query cache identically. A comma typed into the city box is
-caught specifically and answered with "Put the country in its own field."
-rather than a generic format complaint.
+a 145 kB bundle for validating one form, which is not a good trade on mobile.
+Reverting is one import and re-chaining the calls.
 
 ## Search history
 

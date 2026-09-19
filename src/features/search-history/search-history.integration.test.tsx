@@ -9,15 +9,11 @@ import { renderApp } from "@/test/render-app";
 import TodayWeather from "@/pages/today-weather";
 
 async function search(term: string) {
-  const [city, countryCode = ""] = term.split(",").map((part) => part.trim());
   const user = userEvent.setup();
+  const field = screen.getByLabelText(/city, country/i);
 
-  await user.clear(screen.getByLabelText(/^city$/i));
-  await user.clear(screen.getByLabelText(/country code/i));
-  if (city) await user.type(screen.getByLabelText(/^city$/i), city);
-  if (countryCode) {
-    await user.type(screen.getByLabelText(/country code/i), countryCode);
-  }
+  await user.clear(field);
+  await user.type(field, term);
   await user.click(screen.getByRole("button", { name: /search for weather/i }));
   return user;
 }

@@ -4,95 +4,89 @@
 // more verbose `z.pipe(...)` for one form. Swapping back is one import plus
 // re-chaining the calls below.
 import * as z from "zod/mini";
+import { PLACE_SEPARATOR } from "./place-input-mask";
 import type { PlaceQuery } from "./types";
 
 /**
- * A city name: letters in any script, plus the punctuation real place names
- * carry. Notably it rejects commas, because the form now owns the separator
- * and a comma in the city box means the country went in the wrong field.
+ * A place name: letters in any script, plus the punctuation real names carry.
+ * The input mask already keeps typing within this set; the schema repeats the
+ * rule because it is the boundary the rest of the app trusts, and it has to
+ * hold for a pasted or programmatic value too.
  */
-const CITY_PATTERN = /^[\p{L}\p{N}][\p{L}\p{M}\p{N} '’./-]*$/u;
+const PLACE_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} '’.-]*$/u;
 
-/** ISO 3166-1 alpha-2, which is what the OpenWeather geocoder matches on. */
-const COUNTRY_PATTERN = /^[A-Z]{2}$/;
+const MAX_CITY_LENGTH = 80;
+const MAX_COUNTRY_LENGTH = 60;
 
 const collapseSpace = (value: string) => value.trim().replace(/\s+/g, " ");
 
 /**
- * Validates and normalises the search form into a domain `PlaceQuery`.
+ * Splits the single field on its separator.
+ *
+ * The mockup shows one input float-labelled "Country" while requirement 2
+ * asks for a city *and* a country, so one field carries both. Everything
+ * after the first separator is the country, which is left free-form on
+ * purpose: the geocoder accepts `MY` and `Malaysia` alike, and rejecting the
+ * spelled-out name would be a restriction nothing asks for.
+ */
+function splitPlace(raw: string) {
+  const [city = "", ...rest] = raw.split(PLACE_SEPARATOR);
+  return {
+    city: collapseSpace(city),
+    country: collapseSpace(rest.join(PLACE_SEPARATOR)),
+  };
+}
+
+const parsedFields = z.pipe(z.string(), z.transform(splitPlace));
+
+/**
+ * Validates and normalises the search field into a domain `PlaceQuery`.
  *
  * Normalisation runs before the checks, so "  kuala   lumpur " and
  * "Kuala Lumpur" reach the geocoder — and the query cache — identically.
- * The country is optional: the geocoder resolves a bare city to its best
- * match, which is the behaviour the mockup's single field implied.
  */
-const normalisedFields = z
-  .object({
-    city: z.pipe(z.string(), z.transform(collapseSpace)),
-    countryCode: z.pipe(
-      z.string(),
-      z.transform((value: string) => collapseSpace(value).toUpperCase()),
-    ),
-  })
-  .check(z.superRefine((value, ctx) => {
-    if (!value.city) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["city"],
-        message: "Enter a city.",
-      });
-    } else if (value.city.length > 80) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["city"],
-        message: "That city name is too long.",
-      });
-    } else if (!CITY_PATTERN.test(value.city)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["city"],
-        message: value.city.includes(",")
-          ? "Put the country in its own field."
-          : "Use letters, spaces, hyphens and apostrophes only.",
-      });
-    }
-
-    if (value.countryCode && !COUNTRY_PATTERN.test(value.countryCode)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["countryCode"],
-        message: "Use a two-letter country code, such as MY.",
-      });
-    }
-  }));
-
 export const placeQuerySchema = z.pipe(
-  normalisedFields,
+  parsedFields.check(
+    z.superRefine(({ city, country }, ctx) => {
+      if (!city) {
+        ctx.addIssue({ code: "custom", message: "Enter a city." });
+      } else if (city.length > MAX_CITY_LENGTH) {
+        ctx.addIssue({ code: "custom", message: "That city name is too long." });
+      } else if (!PLACE_PATTERN.test(city)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Use letters, spaces, hyphens and apostrophes only.",
+        });
+      }
+
+      if (!country) return;
+
+      if (country.length > MAX_COUNTRY_LENGTH) {
+        ctx.addIssue({ code: "custom", message: "That country is too long." });
+      } else if (!PLACE_PATTERN.test(country)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Give a country name or code, such as Malaysia or MY.",
+        });
+      }
+    }),
+  ),
   z.transform(
-    ({ city, countryCode }): PlaceQuery =>
-      countryCode ? { city, countryCode } : { city },
+    ({ city, country }): PlaceQuery =>
+      country ? { city, countryCode: country } : { city },
   ),
 );
 
-export type PlaceQueryFields = { city: string; countryCode: string };
-
-/** First message per field, in the shape the form renders. */
-export type PlaceQueryErrors = Partial<Record<keyof PlaceQueryFields, string>>;
-
 export function validatePlaceQuery(
-  fields: PlaceQueryFields,
-): { ok: true; query: PlaceQuery } | { ok: false; errors: PlaceQueryErrors } {
-  const result = placeQuerySchema.safeParse(fields);
+  input: string,
+): { ok: true; query: PlaceQuery } | { ok: false; message: string } {
+  const result = placeQuerySchema.safeParse(input);
   if (result.success) return { ok: true, query: result.data };
 
-  const errors: PlaceQueryErrors = {};
-  for (const issue of result.error.issues) {
-    const field = issue.path?.[0];
-    if ((field === "city" || field === "countryCode") && !errors[field]) {
-      errors[field] = issue.message;
-    }
-  }
-  return { ok: false, errors };
+  return {
+    ok: false,
+    message: result.error.issues[0]?.message ?? "Enter a city.",
+  };
 }
 
 /** Stable cache/identity key for a place, independent of casing and spacing. */

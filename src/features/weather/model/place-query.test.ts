@@ -1,57 +1,59 @@
 import { describe, expect, it } from "vitest";
 import { placeQueryKey, validatePlaceQuery } from "./place-query";
 
-const ok = (city: string, countryCode = "") =>
-  validatePlaceQuery({ city, countryCode });
+const message = (input: string) => {
+  const result = validatePlaceQuery(input);
+  return result.ok ? null : result.message;
+};
 
 describe("validatePlaceQuery", () => {
-  it("normalises spacing and upper-cases the country", () => {
-    expect(ok("  kuala   lumpur ", " my ")).toEqual({
+  it("splits city and country on the separator", () => {
+    expect(validatePlaceQuery("Johor,MY")).toEqual({
       ok: true,
-      query: { city: "kuala lumpur", countryCode: "MY" },
+      query: { city: "Johor", countryCode: "MY" },
+    });
+  });
+
+  it("accepts a spelled-out country, which the geocoder also resolves", () => {
+    expect(validatePlaceQuery("Kuala Lumpur, Malaysia")).toEqual({
+      ok: true,
+      query: { city: "Kuala Lumpur", countryCode: "Malaysia" },
     });
   });
 
   it("treats the country as optional", () => {
-    expect(ok("Singapore")).toEqual({ ok: true, query: { city: "Singapore" } });
-  });
-
-  it("accepts non-Latin scripts and the punctuation place names carry", () => {
-    expect(ok("Ōsaka", "jp").ok).toBe(true);
-    expect(ok("Tokusan-ri", "KR").ok).toBe(true);
-    expect(ok("L'Aquila", "IT").ok).toBe(true);
-  });
-
-  it("rejects a blank city", () => {
-    expect(ok("   ", "MY")).toEqual({
-      ok: false,
-      errors: { city: "Enter a city." },
+    expect(validatePlaceQuery("Singapore")).toEqual({
+      ok: true,
+      query: { city: "Singapore" },
     });
   });
 
-  it("points a comma-separated entry at the country field", () => {
-    const result = ok("Johor, MY");
-
-    expect(result.ok).toBe(false);
-    expect(result.ok === false && result.errors.city).toMatch(/own field/i);
+  it("normalises spacing so the cache key is stable", () => {
+    expect(validatePlaceQuery("  kuala   lumpur ,  my ")).toEqual({
+      ok: true,
+      query: { city: "kuala lumpur", countryCode: "my" },
+    });
   });
 
-  it("requires a two-letter country code", () => {
-    const result = ok("Johor", "MYS");
-
-    expect(result.ok).toBe(false);
-    expect(result.ok === false && result.errors.countryCode).toMatch(
-      /two-letter/i,
-    );
+  it("accepts non-Latin scripts and the punctuation place names carry", () => {
+    expect(validatePlaceQuery("Ōsaka, JP").ok).toBe(true);
+    expect(validatePlaceQuery("Tokusan-ri, KR").ok).toBe(true);
+    expect(validatePlaceQuery("L'Aquila, IT").ok).toBe(true);
+    expect(validatePlaceQuery("St. Louis, US").ok).toBe(true);
   });
 
-  it("reports both fields at once", () => {
-    const result = ok("", "MYS");
+  it("rejects a blank city", () => {
+    expect(message("")).toMatch(/enter a city/i);
+    expect(message("   ")).toMatch(/enter a city/i);
+    expect(message(", MY")).toMatch(/enter a city/i);
+  });
 
-    expect(result.ok === false && Object.keys(result.errors)).toEqual([
-      "city",
-      "countryCode",
-    ]);
+  it("rejects characters that cannot be in a place name", () => {
+    expect(message("<script>")).toMatch(/letters/i);
+  });
+
+  it("rejects an overlong entry rather than sending it", () => {
+    expect(message("a".repeat(81))).toMatch(/too long/i);
   });
 });
 

@@ -9,15 +9,11 @@ import { renderApp } from "@/test/render-app";
 import TodayWeather from "./today-weather";
 
 async function search(term: string) {
-  const [city, countryCode = ""] = term.split(",").map((part) => part.trim());
   const user = userEvent.setup();
+  const field = screen.getByLabelText(/city, country/i);
 
-  await user.clear(screen.getByLabelText(/^city$/i));
-  await user.clear(screen.getByLabelText(/country code/i));
-  if (city) await user.type(screen.getByLabelText(/^city$/i), city);
-  if (countryCode) {
-    await user.type(screen.getByLabelText(/country code/i), countryCode);
-  }
+  await user.clear(field);
+  await user.type(field, term);
   await user.click(screen.getByRole("button", { name: /search for weather/i }));
   return user;
 }
@@ -108,6 +104,22 @@ describe("Today's Weather", () => {
 
     expect(await screen.findByText("26°")).toBeInTheDocument();
     expect(screen.queryByText(/couldn't find/i)).not.toBeInTheDocument();
+  });
+
+  it("accepts any separator character in place of a typed comma", async () => {
+    renderApp(<TodayWeather />);
+    await search("Johor/MY");
+
+    expect(await screen.findByText("26°")).toBeInTheDocument();
+  });
+
+  it("ignores a second separator rather than building an unanswerable query", async () => {
+    renderApp(<TodayWeather />);
+    const user = userEvent.setup();
+    const field = screen.getByLabelText(/city, country/i);
+    await user.type(field, "Johor;MY;extra");
+
+    expect(field).toHaveValue("Johor,MYextra");
   });
 
   it("keeps the previous reading on screen while the next one loads", async () => {
