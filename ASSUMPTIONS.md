@@ -52,6 +52,24 @@ full package costs 24.2 kB gzipped against 5.5 kB for mini — a 13 % swing on
 a 145 kB bundle for validating one form, which is not a good trade on mobile.
 Reverting is one import and re-chaining the calls.
 
+**A clear button appears once there is something to clear.** It sits over the
+pill's right padding as a sibling of the label rather than inside it: a
+button nested in a label is invalid HTML, and a click on it would then count
+as a click on the label as well. Clearing returns focus to the field, since
+it is the start of retyping rather than the end of the interaction.
+
+## Layout
+
+**The composition fills the viewport and the page itself never scrolls.** The
+search row and the reading take the height they need and the history panel
+absorbs the rest, scrolling its own list. The alternative — letting the
+document grow — pushed the card off the top of the screen as the history
+filled up, which is the one thing on the page that should stay put.
+
+A consequence worth naming: the card is as tall as the viewport allows, so
+with a short history the panel is mostly empty space. That is the trade for
+never moving the reading.
+
 ## Search history
 
 **A search is recorded when it is submitted, not when it succeeds.** The
@@ -92,6 +110,20 @@ depending on who is looking at it. Search-history timestamps, by contrast,
 record when *this user* searched, so they are shown in the viewer's own
 timezone.
 
+**The card keeps its shape when there is nothing to put in it.** Before the
+first search, and after a failed one, every value shows a dash with its label
+left in place and the default illustration stands in at full size. A card
+that shows what a reading will contain beats a card that collapses to a
+sentence, and there is no second layout for the reading to cross-fade from
+when it arrives. The loading skeleton was removed along with it: the
+placeholders already hold the shape, so the card dims rather than being
+replaced.
+
+**The error message sits in the card's status line**, under the heading and
+above the dashes, rather than replacing the card. Its width is capped short
+of the illustration, which overlaps the top-right corner and would otherwise
+swallow the end of a long message.
+
 **Place names come from the geocoder, not the weather response.** The weather
 endpoint reports the nearest reporting station, which can carry a different
 name from the place that was searched.
@@ -106,11 +138,22 @@ onwards (`04` and the rain, snow, thunderstorm and fog groups) uses the cloud.
 The condition text is always shown alongside, so no information depends on
 the illustration.
 
+**The sun-behind-cloud doubles as the placeholder,** shown at the same size
+before the first search and after a failed one. It carries an empty `alt`
+there: with no reading to describe it is decoration, and a screen reader
+should skip it rather than announce a condition the card is not reporting.
+
 **Backgrounds were re-encoded as JPEG** (roughly 900 KB each as supplied,
 about 160 KB after). A flat colour sits behind them so layout never depends on
 an image loading.
 
 ## Theme
+
+**The switcher leads the search row**, built to the same square as the submit
+button that closes it — filled violet for the control that submits the form,
+glass for the one that only changes how the page looks. It was a floating
+corner button before; in the row it reads as part of the same control strip
+and costs no vertical space on a phone.
 
 **Both themes are built, with a switcher**, claiming requirement 6. The first
 visit follows the operating system's `prefers-color-scheme`; an explicit
@@ -157,11 +200,11 @@ one line of text, so the card holds its height throughout; measured across a
 full switch it stays at a constant 188 px.
 
 **The previous reading stays on screen while the next one loads,** dimmed to
-50 %, rather than being replaced by a skeleton. The skeleton now appears only
-for the very first search, when there is nothing to keep. Swapping a populated
-card for a skeleton changed its height and dropped the illustration, so the
-composition jumped twice per search; this was the larger half of the problem
-the cross-fades were asked to solve.
+50 %, rather than being replaced by a skeleton — there is no skeleton any
+more. Swapping a populated card for one changed its height and dropped the
+illustration, so the composition jumped twice per search; this was the larger
+half of the problem the cross-fades were asked to solve. The placeholders
+hold the same shape without the second layout.
 
 This is not a true morph, and the distinction is worth stating: Framer Motion
 interpolates transforms and opacity, not SVG path geometry. Morphing one path

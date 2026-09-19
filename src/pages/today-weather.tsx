@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
 import { WeatherLayout } from "@/components/layouts/weather-layout";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { WeatherCard } from "@/features/weather/components/weather-card";
 import { WeatherError } from "@/features/weather/components/weather-error";
 import { WeatherSearchForm } from "@/features/weather/components/weather-search-form";
 import { WeatherSummary } from "@/features/weather/components/weather-summary";
-import { WeatherSummarySkeleton } from "@/features/weather/components/weather-summary-skeleton";
 import { useCurrentWeather } from "@/features/weather/hooks/use-current-weather";
 import type { PlaceQuery } from "@/features/weather/model/types";
 import { SearchHistoryPanel } from "@/features/search-history/components/search-history-panel";
@@ -27,8 +27,12 @@ export default function TodayWeather({
 }: TodayWeatherProps = {}) {
   const [activeQuery, setActiveQuery] = useState<PlaceQuery | null>(null);
   const history = useSearchHistory(historyRepository);
-  const { data, error, isFetching, isSuccess, refetch } =
-    useCurrentWeather(activeQuery);
+  const { data, error, isFetching, refetch } = useCurrentWeather(activeQuery);
+
+  // A failed lookup shows no reading at all: the card falls back to its
+  // placeholders rather than leaving the previous city's numbers under a
+  // message saying the city could not be found.
+  const snapshot = error ? undefined : data;
 
   const addToHistory = history.add;
 
@@ -62,29 +66,36 @@ export default function TodayWeather({
 
   return (
     <WeatherLayout>
-      <WeatherSearchForm onSearch={handleSearch} isSearching={isFetching} />
+      {/* Both controls are the same square: the theme switch leads the row,
+          the submit button closes it. */}
+      <div className="flex w-full shrink-0 items-start gap-3">
+        <ThemeToggle />
+        <WeatherSearchForm onSearch={handleSearch} isSearching={isFetching} />
+      </div>
 
-      <WeatherCard snapshot={isSuccess ? data : undefined}>
-        <div role="status" aria-live="polite" aria-busy={isFetching}>
-          {/* Once a reading exists it stays on screen, dimmed, while the
-              next one loads — the skeleton is only for the very first
-              search, when there is nothing to keep. */}
-          {error ? (
-            <WeatherError error={error} />
-          ) : data ? (
-            <WeatherSummary snapshot={data} isStale={isFetching} />
-          ) : isFetching ? (
-            <WeatherSummarySkeleton />
-          ) : (
-            <div>
-              <h2 className="text-sm font-medium text-foreground sm:text-base">
-                Today&rsquo;s Weather
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Search for a city to see its current conditions.
-              </p>
-            </div>
-          )}
+      <WeatherCard snapshot={snapshot}>
+        {/* One card in every state. The reading keeps its labels and shows a
+            dash per value until there is something to put there, so nothing
+            below it moves when a search lands or fails. */}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-busy={isFetching}
+          className="shrink-0"
+        >
+          <WeatherSummary
+            snapshot={snapshot}
+            isStale={isFetching}
+            status={
+              error ? (
+                <WeatherError error={error} />
+              ) : snapshot ? null : (
+                <p className="text-sm text-muted-foreground">
+                  Search for a city to see its current conditions.
+                </p>
+              )
+            }
+          />
         </div>
 
         <SearchHistoryPanel

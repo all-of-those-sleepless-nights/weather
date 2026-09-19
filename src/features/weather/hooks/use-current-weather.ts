@@ -15,9 +15,9 @@ export const WEATHER_STALE_TIME_MS = 5 * 60_000;
  * surface its message immediately rather than after three futile attempts.
  *
  * `keepPreviousData` keeps the last reading on screen while the next one
- * loads. Without it every search swaps the card for a skeleton of a different
- * height and drops the illustration, so the whole composition jumps twice per
- * search; with it the values update in place.
+ * loads. Without it every search empties the card back to its placeholders
+ * and swaps the illustration for the default one, so the values flicker
+ * through a blank state twice per search; with it they update in place.
  */
 export function useCurrentWeather(query: PlaceQuery | null) {
   return useQuery<WeatherSnapshot>({

@@ -25,6 +25,42 @@ describe("Today's Weather", () => {
     expect(screen.getByText(/search for a city/i)).toBeInTheDocument();
   });
 
+  it("keeps every label with a dash in place of the value it has no reading for", () => {
+    renderApp(<TodayWeather />);
+
+    expect(screen.getByText("H: - L: -")).toBeInTheDocument();
+    expect(screen.getByText("Humidity: -")).toBeInTheDocument();
+  });
+
+  it("falls back to the placeholders when a search fails", async () => {
+    renderApp(<TodayWeather />);
+    await search("Johor, MY");
+    await screen.findByText("26°");
+
+    await search("Asdfgh, ZZ");
+
+    expect(await screen.findByText(/couldn't find/i)).toBeInTheDocument();
+    expect(screen.getByText("Humidity: -")).toBeInTheDocument();
+  });
+
+  it("clears the field with its clear button", async () => {
+    renderApp(<TodayWeather />);
+    const user = userEvent.setup();
+    const field = screen.getByLabelText(/city, country/i);
+
+    expect(
+      screen.queryByRole("button", { name: /clear the search field/i }),
+    ).not.toBeInTheDocument();
+
+    await user.type(field, "Johor, MY");
+    await user.click(
+      screen.getByRole("button", { name: /clear the search field/i }),
+    );
+
+    expect(field).toHaveValue("");
+    expect(field).toHaveFocus();
+  });
+
   it("renders the reading for a city that exists", async () => {
     renderApp(<TodayWeather />);
     await search("Johor, MY");
@@ -144,7 +180,7 @@ describe("Today's Weather", () => {
       expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true"),
     );
 
-    // The old reading holds the card's height rather than a skeleton.
+    // The old reading stays put rather than emptying to placeholders.
     expect(screen.getByText("26°")).toBeInTheDocument();
 
     release();
