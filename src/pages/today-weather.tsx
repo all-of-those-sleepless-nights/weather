@@ -65,13 +65,16 @@ export default function TodayWeather({
       <WeatherSearchForm onSearch={handleSearch} isSearching={isFetching} />
 
       <WeatherCard snapshot={isSuccess ? data : undefined}>
-        <div aria-live="polite" aria-busy={isFetching}>
-          {isFetching ? (
-            <WeatherSummarySkeleton />
-          ) : error ? (
+        <div role="status" aria-live="polite" aria-busy={isFetching}>
+          {/* Once a reading exists it stays on screen, dimmed, while the
+              next one loads — the skeleton is only for the very first
+              search, when there is nothing to keep. */}
+          {error ? (
             <WeatherError error={error} />
           ) : data ? (
-            <WeatherSummary snapshot={data} />
+            <WeatherSummary snapshot={data} isStale={isFetching} />
+          ) : isFetching ? (
+            <WeatherSummarySkeleton />
           ) : (
             <div>
               <h2 className="text-sm font-medium text-foreground sm:text-base">

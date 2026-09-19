@@ -9,9 +9,15 @@ import { renderApp } from "@/test/render-app";
 import TodayWeather from "./today-weather";
 
 async function search(term: string) {
+  const [city, countryCode = ""] = term.split(",").map((part) => part.trim());
   const user = userEvent.setup();
-  await user.clear(screen.getByLabelText(/city, country/i));
-  await user.type(screen.getByLabelText(/city, country/i), term);
+
+  await user.clear(screen.getByLabelText(/^city$/i));
+  await user.clear(screen.getByLabelText(/country code/i));
+  if (city) await user.type(screen.getByLabelText(/^city$/i), city);
+  if (countryCode) {
+    await user.type(screen.getByLabelText(/country code/i), countryCode);
+  }
   await user.click(screen.getByRole("button", { name: /search for weather/i }));
   return user;
 }
@@ -102,6 +108,35 @@ describe("Today's Weather", () => {
 
     expect(await screen.findByText("26°")).toBeInTheDocument();
     expect(screen.queryByText(/couldn't find/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the previous reading on screen while the next one loads", async () => {
+    renderApp(<TodayWeather />);
+    await search("Johor, MY");
+    await screen.findByText("26°");
+
+    // Hold the second search open so the in-flight state can be inspected.
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.get(GEO_URL, async () => {
+        await held;
+        return HttpResponse.json([{ ...johorGeocoding, name: "Ipoh" }]);
+      }),
+    );
+
+    await search("Ipoh, MY");
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true"),
+    );
+
+    // The old reading holds the card's height rather than a skeleton.
+    expect(screen.getByText("26°")).toBeInTheDocument();
+
+    release();
+    await waitFor(() => expect(screen.getByText("Ipoh, MY")).toBeInTheDocument());
   });
 
   it("keeps rendering when the reading has no condition data", async () => {

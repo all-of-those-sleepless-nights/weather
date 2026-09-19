@@ -6,19 +6,43 @@ mockup, with the reasoning behind each.
 
 ## Search input
 
-**One field accepting `City, Country`.** The mockup shows a single field
-float-labelled "Country", while requirement 2 asks the user to input a city
-*and* a country name. Rather than add a second field the mockup does not have,
-the field takes both and splits on the comma. The visible label reads
-"City, Country" so the format is discoverable without a placeholder.
+**Two fields inside one pill, with the comma printed between them.** The
+mockup shows a single field float-labelled "Country", while requirement 2 asks
+the user to input a city *and* a country name. Both are captured without
+adding a second visible control: the pill holds a city box and a two-character
+country box with a static `,` between them, so the separator is furniture
+rather than something to remember to type. The silhouette still matches the
+mockup and `Singapore, SG` reads as one phrase.
+
+The city box uses `field-sizing: content` so it grows with what is typed and
+the comma stays against the name. Where that property is unsupported the
+`size` attribute holds a sensible width and the layout still reads correctly.
+
+The two boxes share one visible group label, and each carries its own
+screen-reader label ("City", "Country code") so neither is announced as
+unlabelled.
 
 **The country is optional.** `Singapore` works as well as `Singapore, SG`;
 the geocoder resolves the best match. Rejecting a bare city would be a
 restriction the brief does not ask for.
 
-**Country is matched as OpenWeather accepts it** — an ISO 3166 code such as
-`MY` is reliable, and full country names work where the provider recognises
-them.
+**The country must be an ISO 3166-1 alpha-2 code** when given — `MY`, not
+`Malaysia` — which is what the OpenWeather geocoder matches on. The field is
+capped at two characters and upper-cased on submit.
+
+**Zod is imported as `zod/mini`.** Same validators, composed with `z.pipe`
+instead of method chaining, and tree-shakeable. Measured on this bundle the
+full package costs 24.2 kB gzipped against 5.5 kB for mini — a 13 % swing on
+a 145 kB bundle for validating two text fields, which is not a good trade on
+mobile. Reverting is one import and re-chaining the calls.
+
+**Input is validated with Zod before any request is made**
+(`src/features/weather/model/place-query.ts`). The schema normalises first —
+trimming and collapsing runs of whitespace, upper-casing the country — then
+validates, so `"  kuala   lumpur "` and `"Kuala Lumpur"` reach both the
+geocoder and the query cache identically. A comma typed into the city box is
+caught specifically and answered with "Put the country in its own field."
+rather than a generic format complaint.
 
 ## Search history
 
@@ -117,6 +141,20 @@ button's magnifier-to-spinner, and the weather illustration all swap through
 outgoing and incoming icons in one grid cell while rotating or lifting them
 past each other.
 
+**Readings cross-fade in place, and the card never changes height to do it.**
+Every dynamic value — temperature, range, place, timestamp, humidity,
+condition — renders through `ValueSwap`, which stacks the outgoing and
+incoming text in a single grid cell. One line of text is exactly as tall as
+one line of text, so the card holds its height throughout; measured across a
+full switch it stays at a constant 188 px.
+
+**The previous reading stays on screen while the next one loads,** dimmed to
+50 %, rather than being replaced by a skeleton. The skeleton now appears only
+for the very first search, when there is nothing to keep. Swapping a populated
+card for a skeleton changed its height and dropped the illustration, so the
+composition jumped twice per search; this was the larger half of the problem
+the cross-fades were asked to solve.
+
 This is not a true morph, and the distinction is worth stating: Framer Motion
 interpolates transforms and opacity, not SVG path geometry. Morphing one path
 into another needs a dedicated interpolator such as flubber and only works on
@@ -131,6 +169,11 @@ clouds — updates the alternative text without animating an identical picture.
 **Under `prefers-reduced-motion` the presence wrapper is dropped entirely**
 rather than merely shortened, so exactly one icon exists in the accessibility
 tree at all times.
+
+**Values live inside an `aria-live` region, so the outgoing copy hides
+itself.** For the length of a cross-fade two readings exist in the DOM; the
+exiting one sets `aria-hidden` via `useIsPresent`, leaving exactly one for a
+screen reader to announce.
 
 ## Scope
 
