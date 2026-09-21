@@ -11,7 +11,7 @@ export function WeatherLayout({ children }: { children: ReactNode }) {
     <div className="relative min-h-dvh w-full">
       <div
         aria-hidden="true"
-        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat transition-[background-image] duration-500"
+        className="fixed inset-0 -z-10 min-h-lvh bg-cover bg-center bg-no-repeat transition-[background-image] duration-500"
         style={{ backgroundImage: `url(${theme === "dark" ? bgDark : bgLight})` }}
       />
 
