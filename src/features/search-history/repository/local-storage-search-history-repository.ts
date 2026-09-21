@@ -6,7 +6,6 @@ import {
 
 export const HISTORY_STORAGE_KEY = "todays-weather.search-history.v1";
 
-/** Keeps the list useful and the stored payload small. */
 export const HISTORY_LIMIT = 20;
 
 function createId(): string {
@@ -24,13 +23,6 @@ function isEntry(value: unknown): value is SearchHistoryEntry {
   );
 }
 
-/**
- * Browser-storage implementation of {@link SearchHistoryRepository}.
- *
- * Every read is defensive: storage is shared with the user, other tabs, and
- * previous versions of this app, so anything malformed is discarded rather
- * than allowed to crash the page on boot.
- */
 export function createLocalStorageSearchHistoryRepository(
   storage: Storage = window.localStorage,
   limit: number = HISTORY_LIMIT,
@@ -43,7 +35,6 @@ export function createLocalStorageSearchHistoryRepository(
       if (!Array.isArray(parsed)) return [];
       return parsed.filter(isEntry);
     } catch {
-      // Corrupt JSON, or storage blocked entirely (Safari private browsing).
       return [];
     }
   }
@@ -52,8 +43,7 @@ export function createLocalStorageSearchHistoryRepository(
     try {
       storage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(entries));
     } catch {
-      // Quota exceeded or storage unavailable. History is a convenience, so
-      // degrade to in-memory for this session rather than failing the search.
+      // Quota or storage unavailable: degrade to in-memory for this session.
     }
     return entries;
   }

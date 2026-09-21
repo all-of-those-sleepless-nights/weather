@@ -23,11 +23,10 @@ describe("maskPlaceInput", () => {
     expect(maskPlaceInput("Stratford-upon-Avon")).toBe("Stratford-upon-Avon");
     expect(maskPlaceInput("L'Aquila")).toBe("L'Aquila");
     expect(maskPlaceInput("Ōsaka")).toBe("Ōsaka");
-  });
-
-  it("treats a full stop as a separator like any other punctuation", () => {
-    expect(maskPlaceInput("Johor.MY")).toBe("Johor,MY");
-    expect(maskPlaceInput("Johor..MY")).toBe("Johor,MY");
+    expect(maskPlaceInput("St. Louis, US")).toBe("St. Louis, US");
+    expect(maskPlaceInput("Mt. Pleasant")).toBe("Mt. Pleasant");
+    expect(maskPlaceInput("25 de Mayo, AR")).toBe("25 de Mayo, AR");
+    expect(maskPlaceInput("Villa 25 de Mayo")).toBe("Villa 25 de Mayo");
   });
 
   it("is prefix-stable, which is what keeps the caret in place", () => {

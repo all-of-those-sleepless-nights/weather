@@ -3,36 +3,26 @@ import type { WeatherSnapshot } from "../model/types";
 import { WeatherIcon } from "./weather-icon";
 
 type WeatherCardProps = {
-  /** Drives the overlapping illustration; a glyph stands in without one. */
   snapshot?: WeatherSnapshot;
-  /** Switches that glyph to the failure one. */
   hasError?: boolean;
   children: ReactNode;
 };
 
-/**
- * The outer glass card.
- *
- * It owns the frosted material for the whole composition — the history panel
- * and rows nested inside deliberately do not blur again, since stacked
- * backdrop filters compound and cost an extra composited layer each.
- */
 export function WeatherCard({
   snapshot,
   hasError = false,
   children,
 }: WeatherCardProps) {
   return (
-    // Headroom for the illustration, which overlaps the card in every state.
-    <div className="relative w-full pt-14 sm:pt-20">
+    <div className="relative w-full pt-36 md:pt-20">
       <WeatherIcon
         iconCode={snapshot?.iconCode}
         description={snapshot?.description}
         isError={hasError}
-        className="pointer-events-none absolute right-0 top-0 z-10 drop-shadow-2xl sm:right-8"
+        className="pointer-events-none absolute z-10 drop-shadow-2xl top-16 right-2 narrow:left-0 narrow:-right-5 narrow:mx-auto md:-top-5 md:right-4"
       />
 
-      <div className="glass relative rounded-card border border-glass-border bg-surface-card px-4 pb-4 pt-6 sm:px-8 sm:pb-6 sm:pt-8">
+      <div className="@container glass relative rounded-card border border-glass-border bg-surface-card px-5 py-6 narrow:pt-20 md:px-8 md:py-8">
         {children}
       </div>
     </div>

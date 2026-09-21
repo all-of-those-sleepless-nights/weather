@@ -1,7 +1,6 @@
 import type { CurrentWeatherDto } from "./dto";
 import { requestOpenWeather } from "./openweather-client";
 
-/** Current conditions at a coordinate, in metric units. */
 export async function fetchCurrentWeather(
   latitude: number,
   longitude: number,

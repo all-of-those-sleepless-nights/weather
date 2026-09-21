@@ -6,19 +6,6 @@ import type { PlaceQuery, WeatherSnapshot } from "../model/types";
 
 export const WEATHER_STALE_TIME_MS = 5 * 60_000;
 
-/**
- * Current weather for a place, or idle until one is submitted.
- *
- * React Query earns its place here for caching, request de-duplication and
- * the loading/error state machine — not for pagination, of which there is
- * none. The retry predicate is the important part: a mistyped city must
- * surface its message immediately rather than after three futile attempts.
- *
- * `keepPreviousData` keeps the last reading on screen while the next one
- * loads. Without it every search empties the card back to its placeholders
- * and swaps the illustration for the default one, so the values flicker
- * through a blank state twice per search; with it they update in place.
- */
 export function useCurrentWeather(query: PlaceQuery | null) {
   return useQuery<WeatherSnapshot>({
     queryKey: ["weather", query ? placeQueryKey(query) : "idle"],

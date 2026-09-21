@@ -1,10 +1,3 @@
-/**
- * Raw OpenWeather response shapes.
- *
- * These names belong to the provider, not to us. Nothing outside this folder
- * should import them — `mappers.ts` is the only consumer.
- */
-
 export type GeocodingResultDto = {
   name: string;
   lat: number;

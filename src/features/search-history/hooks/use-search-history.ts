@@ -3,12 +3,7 @@ import { createLocalStorageSearchHistoryRepository } from "../repository/local-s
 import type { SearchHistoryRepository } from "../repository/search-history-repository";
 import type { NewSearchHistoryEntry } from "../model/types";
 
-/**
- * React-facing wrapper around a {@link SearchHistoryRepository}.
- *
- * The repository is injectable so tests — and a future server-backed
- * implementation — can supply their own without touching any component.
- */
+/** React state over an injectable {@link SearchHistoryRepository}. */
 export function useSearchHistory(repository?: SearchHistoryRepository) {
   const repo = useMemo(
     () => repository ?? createLocalStorageSearchHistoryRepository(),

@@ -1,9 +1,3 @@
-/**
- * Typed access to build-time configuration.
- *
- * Failing loudly at startup beats a stream of confusing 401s from the API:
- * a missing key is a setup mistake, not a runtime condition to handle.
- */
 export class MissingConfigError extends Error {
   constructor(key: string) {
     super(

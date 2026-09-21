@@ -41,7 +41,7 @@ describe("Today's Weather", () => {
     await search("Johor, MY");
     await screen.findByText("26°");
 
-    await search("Asdfgh, ZZ");
+    await search("Asdfgh, MY");
 
     expect(await screen.findByText(/couldn't find/i)).toBeInTheDocument();
     expect(screen.queryByText(/^humidity/i)).not.toBeInTheDocument();
@@ -88,10 +88,22 @@ describe("Today's Weather", () => {
 
   it("explains an unknown place instead of failing silently", async () => {
     renderApp(<TodayWeather />);
-    await search("Asdfgh, ZZ");
+    await search("Asdfgh, MY");
 
-    expect(await screen.findByText(/couldn't find asdfgh, zz/i)).toBeInTheDocument();
+    expect(await screen.findByText(/couldn't find asdfgh, my/i)).toBeInTheDocument();
     expect(screen.queryByText("26°")).not.toBeInTheDocument();
+  });
+
+  it("treats an unparseable query as an unknown place, not a crash", async () => {
+    server.use(
+      http.get(GEO_URL, () =>
+        HttpResponse.json({ cod: "400", message: "bad params" }, { status: 400 }),
+      ),
+    );
+    renderApp(<TodayWeather />);
+    await search("Test, MY");
+
+    expect(await screen.findByText(/couldn't find test, my/i)).toBeInTheDocument();
   });
 
   it("reports a network failure rather than showing a blank card", async () => {
@@ -112,7 +124,7 @@ describe("Today's Weather", () => {
     await search("Johor, MY");
 
     expect(
-      await screen.findByText(/rejected our api key/i),
+      await screen.findByText(/rejected your api key/i),
     ).toBeInTheDocument();
   });
 
@@ -148,7 +160,7 @@ describe("Today's Weather", () => {
 
   it("recovers to a successful reading after a failed search", async () => {
     renderApp(<TodayWeather />);
-    await search("Asdfgh, ZZ");
+    await search("Asdfgh, MY");
     await screen.findByText(/couldn't find/i);
 
     await search("Johor, MY");

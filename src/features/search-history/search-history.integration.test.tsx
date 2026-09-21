@@ -42,10 +42,10 @@ describe("search history", () => {
 
   it("records a search that failed, so it can be retried", async () => {
     renderApp(<TodayWeather />);
-    await search("Asdfgh, ZZ");
+    await search("Asdfgh, MY");
 
     await screen.findByText(/couldn't find/i);
-    expect(historyList()[0]).toHaveTextContent("Asdfgh, ZZ");
+    expect(historyList()[0]).toHaveTextContent("Asdfgh, MY");
   });
 
   it("moves a repeated search to the top rather than duplicating it", async () => {
@@ -83,7 +83,7 @@ describe("search history", () => {
     );
   });
 
-  it("removes a row with its delete button", async () => {
+  it("asks before removing a row, and names the row it is asking about", async () => {
     renderApp(<TodayWeather />);
     const user = await search("Johor, MY");
     await waitFor(() => expect(historyList()).toHaveLength(1));
@@ -93,6 +93,45 @@ describe("search history", () => {
         name: /remove johor, my from search history/i,
       }),
     );
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog).toHaveTextContent(/delete this search\?/i);
+    expect(dialog).toHaveTextContent(/johor, my/i);
+    // The open modal hides the rest of the page from the a11y tree, so the
+    // surviving row is asserted on the cancel and confirm paths below.
+  });
+
+  it("keeps the row when the confirmation is cancelled", async () => {
+    renderApp(<TodayWeather />);
+    const user = await search("Johor, MY");
+    await waitFor(() => expect(historyList()).toHaveLength(1));
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /remove johor, my from search history/i,
+      }),
+    );
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: /cancel/i }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+    );
+    expect(historyList()).toHaveLength(1);
+  });
+
+  it("removes a row once the deletion is confirmed", async () => {
+    renderApp(<TodayWeather />);
+    const user = await search("Johor, MY");
+    await waitFor(() => expect(historyList()).toHaveLength(1));
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /remove johor, my from search history/i,
+      }),
+    );
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: /delete/i }));
 
     await waitFor(() => expect(historyList()).toHaveLength(0));
     expect(screen.getByText(/recent searches will appear here/i)).toBeInTheDocument();

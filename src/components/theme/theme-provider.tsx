@@ -27,7 +27,7 @@ function preferredTheme(): Theme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // An explicit choice wins; otherwise follow the operating system.
+  // An explicit choice wins, otherwise follow the OS.
   const [theme, setTheme] = useState<Theme>(
     () => readStoredTheme() ?? preferredTheme(),
   );
@@ -38,7 +38,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
-      // Persistence is a convenience; the theme still applies for this visit.
+      // The theme still applies for this visit.
     }
   }, [theme]);
 

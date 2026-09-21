@@ -1,0 +1,66 @@
+# Assumptions
+
+Decisions the requirements and the mockup did not fully determine.
+
+## Search input
+
+- One field taking City, Country, split on the first comma
+- Country is optional but must be a two-letter ISO country code, since the geocoder ignores anything longer and silently widens the search
+- Codes are checked against the 249 assigned ISO 3166-1 values and upper-cased before sending
+- Input is validated with Zod before any request, after trimming and collapsing whitespace
+- Used zod/mini rather than full Zod, 5.5 kB gzipped against 24.2 kB
+- A clear button appears once there is something to clear
+
+## Layout
+
+- Below 400px the layout rearranges instead of shrinking: the icon centres, the card gains top padding, and the readings stack into one column
+- That cutoff is a narrow variant in index.css, written as width <= 400px because Tailwind's own max-* compiles to a strict <
+- A scroll-to-top button appears after 240px of scrolling
+
+## Search history
+
+- A search is recorded when submitted, not when it succeeds, so a failed lookup can be retried
+- Repeating a search moves it to the top instead of duplicating it
+- Deleting asks for confirmation first, since the list is the only copy
+- One dialog serves the whole list, and focus returns to the panel heading after a delete
+- Capped at 20 entries, newest first
+- Stored in localStorage with no user accounts, behind a repository interface
+- Corrupt storage falls back to an empty list
+
+## Weather data
+
+- Metric units
+- H and L come from temp_max and temp_min, which often equal temp on the free tier
+- Observation times use the searched city's timezone, history times use the viewer's
+- With no reading the values are left out rather than filled with placeholders
+- No loading skeleton, the previous reading stays on screen dimmed
+- A 400 from the geocoder is treated as no such place
+- Errors appear in the card's status line
+- Place names come from the geocoder, not the weather response
+
+## Icons and imagery
+
+- Two illustrations cover nine condition groups, sun-behind-cloud for 01 to 03 and cloud for the rest
+- With no reading the illustration is a line glyph, struck through on an error
+- Glyphs are sized by their drawn ink, since the PNGs carry transparent margin
+- Backgrounds re-encoded as JPEG, about 900 KB down to 160 KB each
+
+## Theme
+
+- The theme switcher leads the search row, built to the same square as the submit button
+- Both themes ship with a switcher, the first visit follows the OS setting and the choice is remembered
+
+## Deviations from the Figma
+
+- Light secondary text darkened from #666666 to #444444 to pass WCAG AA contrast
+- Dark secondary text left at #FFFFFF as specified
+- The search bar uses the shared glass border instead of Figma's solid #000000 rule
+
+## Motion
+
+- Added motion for icon swaps and text changes for smoother transitions
+
+## Scope
+
+- No pagination, since the history list is local and capped
+- No routing beyond / and a 404

@@ -17,11 +17,7 @@ type TodayWeatherProps = {
   historyRepository?: SearchHistoryRepository;
 };
 
-/**
- * Composes the page and owns the one piece of state the pieces share: which
- * place is currently being shown. Fetching belongs to the query hook and
- * persistence to the history repository, so this file stays a wiring layer.
- */
+/** Wiring only: owns the active place, delegates fetching and persistence. */
 export default function TodayWeather({
   historyRepository,
 }: TodayWeatherProps = {}) {
@@ -29,9 +25,8 @@ export default function TodayWeather({
   const history = useSearchHistory(historyRepository);
   const { data, error, isFetching, refetch } = useCurrentWeather(activeQuery);
 
-  // A failed lookup shows no reading at all: the card falls back to its
-  // placeholders rather than leaving the previous city's numbers under a
-  // message saying the city could not be found.
+  // A failed lookup clears the card rather than leaving the last city's
+  // numbers under a "not found" message.
   const snapshot = error ? undefined : data;
 
   const addToHistory = history.add;
@@ -39,8 +34,7 @@ export default function TodayWeather({
   const handleSearch = useCallback(
     (query: PlaceQuery) => {
       setActiveQuery(query);
-      // Recorded on intent rather than on success: the brief's history is a
-      // log of what was searched, and a failed lookup is still worth a retry.
+      // Recorded on intent, so a failed lookup can be retried from the list.
       addToHistory({ city: query.city, countryCode: query.countryCode });
     },
     [addToHistory],
@@ -57,8 +51,7 @@ export default function TodayWeather({
         activeQuery?.countryCode === query.countryCode;
 
       handleSearch(query);
-      // Re-selecting the place already on screen would otherwise be served
-      // from cache; the brief asks for the API to be called again.
+      // Same place, same query key: force a network call.
       if (isSamePlace) void refetch();
     },
     [activeQuery, handleSearch, refetch],
@@ -66,17 +59,13 @@ export default function TodayWeather({
 
   return (
     <WeatherLayout>
-      {/* Both controls are the same square: the theme switch leads the row,
-          the submit button closes it. */}
-      <div className="relative z-20 flex w-full items-start gap-3">
+      <div className="relative z-20 flex w-full items-start gap-2 md:gap-4">
         <ThemeToggle />
         <WeatherSearchForm onSearch={handleSearch} isSearching={isFetching} />
       </div>
 
       <WeatherCard snapshot={snapshot} hasError={Boolean(error)}>
-        {/* One card in every state: the heading and the illustration stay put,
-            and the line under the heading carries the prompt or the failure
-            while there is no reading to show. */}
+        {/* One card in every state; this line carries the prompt or error. */}
         <div role="status" aria-live="polite" aria-busy={isFetching}>
           <WeatherSummary
             snapshot={snapshot}
@@ -85,7 +74,7 @@ export default function TodayWeather({
               error ? (
                 <WeatherError error={error} />
               ) : snapshot ? null : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   Search for a city to see its current conditions.
                 </p>
               )

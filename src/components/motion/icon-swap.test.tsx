@@ -2,11 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { IconSwap } from "./icon-swap";
 
-/**
- * The suite runs with `prefers-reduced-motion: reduce` (see src/test/setup.ts),
- * so these assertions cover the branch that most needs protecting: the one
- * where the animation is skipped entirely and the icon must still be there.
- */
+/** The suite runs reduced-motion, so this covers the skip-animation branch. */
 describe("IconSwap", () => {
   it("renders the current icon", () => {
     render(

@@ -1,34 +1,14 @@
-// `zod/mini` rather than `zod`: same validators, composed as functions
-// instead of chained methods, and tree-shakeable. Measured on this bundle,
-// full zod costs 24.2 kB gzipped and mini costs 5.5 kB — worth the slightly
-// more verbose `z.pipe(...)` for one form. Swapping back is one import plus
-// re-chaining the calls below.
 import * as z from "zod/mini";
+import { isCountryCode } from "./country-codes";
 import { PLACE_SEPARATOR } from "./place-input-mask";
 import type { PlaceQuery } from "./types";
 
-/**
- * A place name: letters in any script, plus the punctuation real names carry.
- * The input mask already keeps typing within this set; the schema repeats the
- * rule because it is the boundary the rest of the app trusts, and it has to
- * hold for a pasted or programmatic value too.
- */
-const PLACE_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} '’-]*$/u;
+const PLACE_PATTERN = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} '’.-]*$/u;
 
 const MAX_CITY_LENGTH = 80;
-const MAX_COUNTRY_LENGTH = 60;
 
 const collapseSpace = (value: string) => value.trim().replace(/\s+/g, " ");
 
-/**
- * Splits the single field on its separator.
- *
- * The mockup shows one input float-labelled "Country" while requirement 2
- * asks for a city *and* a country, so one field carries both. Everything
- * after the first separator is the country, which is left free-form on
- * purpose: the geocoder accepts `MY` and `Malaysia` alike, and rejecting the
- * spelled-out name would be a restriction nothing asks for.
- */
 function splitPlace(raw: string) {
   const [city = "", ...rest] = raw.split(PLACE_SEPARATOR);
   return {
@@ -39,12 +19,6 @@ function splitPlace(raw: string) {
 
 const parsedFields = z.pipe(z.string(), z.transform(splitPlace));
 
-/**
- * Validates and normalises the search field into a domain `PlaceQuery`.
- *
- * Normalisation runs before the checks, so "  kuala   lumpur " and
- * "Kuala Lumpur" reach the geocoder — and the query cache — identically.
- */
 export const placeQuerySchema = z.pipe(
   parsedFields.check(
     z.superRefine(({ city, country }, ctx) => {
@@ -55,25 +29,27 @@ export const placeQuerySchema = z.pipe(
       } else if (!PLACE_PATTERN.test(city)) {
         ctx.addIssue({
           code: "custom",
-          message: "Use letters, spaces, hyphens and apostrophes only.",
+          message:
+            "Use letters, numbers, spaces, hyphens, apostrophes and full stops.",
         });
       }
 
-      if (!country) return;
+      // The geocoder only honours a two-letter ISO code here; anything else
+      // is dropped and the search silently widens to every matching city.
+      if (!country || isCountryCode(country)) return;
 
-      if (country.length > MAX_COUNTRY_LENGTH) {
-        ctx.addIssue({ code: "custom", message: "That country is too long." });
-      } else if (!PLACE_PATTERN.test(country)) {
-        ctx.addIssue({
-          code: "custom",
-          message: "Give a country name or code, such as Malaysia or MY.",
-        });
-      }
+      ctx.addIssue({
+        code: "custom",
+        message:
+          country.length === 2
+            ? `"${country.toUpperCase()}" is not a country code. Try MY for Malaysia.`
+            : "Use a two-letter country code, such as MY.",
+      });
     }),
   ),
   z.transform(
     ({ city, country }): PlaceQuery =>
-      country ? { city, countryCode: country } : { city },
+      country ? { city, countryCode: country.toUpperCase() } : { city },
   ),
 );
 

@@ -1,32 +1,25 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "@fontsource-variable/noto-sans";
 
-/* Dark mode is driven by a `.dark` class on <html>, set by the theme provider. */
 @custom-variant dark (&:is(.dark *));
 
+/* `<=`, not Tailwind's own `max-*`, which compiles to a strict `<` and would
+   leave a device at exactly 400px on the wrong layout. */
+@custom-variant narrow (@media (width <= 400px));
+
 /*
- * DESIGN TOKENS
+ * Design tokens in three tiers, so a component names a role, never a colour:
+ * primitives -> semantic roles -> @theme inline (Tailwind utilities).
  *
- * Three tiers, so that a component never names a colour — only a role:
- *   1. primitives  raw channels + the alpha scale
- *   2. roles       semantic names composed from primitives
- *   3. mapping     @theme inline, which turns roles into Tailwind utilities
- *
- * Glassmorphism is treated as three independent axes rather than one bundled
- * class, so each can be restyled without touching the others:
- *   fill   -> bg-surface-card / bg-surface-row / ...
- *   material -> the `glass` utility (blur + shadow)
- *   edge     -> border-glass-border
+ * Glass is three independent axes: fill (bg-surface-*), material (the `glass`
+ * utility) and edge (border-glass-border).
  */
 
 :root {
   /* ---- tier 1: primitives ------------------------------------------- */
 
-  /* Every translucent surface in the light theme is white at one of two
-     alpha steps. Changing the whole material's translucency is a two-line
-     edit here and in .dark below. */
   --tint-surface: 255 255 255;            /* #FFFFFF */
   --alpha-recessed: 0.2;                  /* Figma 33 */
   --alpha-raised: 0.4;                    /* Figma 66 */
@@ -34,8 +27,7 @@
 
   --ink: 0 0 0;                           /* #000000 */
   --ink-muted: 68 68 68;                  /* #444444, darkened from Figma's
-                                             #666666 to clear WCAG AA — see
-                                             ASSUMPTIONS.md */
+                                             #666666 for AA contrast */
   --alpha-ink-muted: 1;
   --violet: 108 64 181;                   /* #6C40B5 */
 
@@ -47,20 +39,20 @@
   --surface-card: var(--surface-recessed);
   --surface-panel: var(--surface-recessed);
   --surface-row: var(--surface-raised);
-  /* The search bar is the one surface that changes elevation between themes:
-     recessed in light, raised in dark. An alias keeps it out of the scale. */
+  /* Recessed in light, raised in dark. */
   --surface-input: var(--surface-recessed);
+  --surface-dialog: var(--surface-raised);
+  --surface-scrim: rgb(0 0 0 / 0.3);
 
-  /* One edge for the whole material. Figma draws the search bar with a solid
-     #000000 rule, but rendered over the photograph it reads as a hard outline
-     next to the hairline on every other glass surface, so it shares this
-     token — see ASSUMPTIONS.md. */
   --glass-border: rgb(255 255 255 / 0.5); /* #FFFFFF80 */
+  /* The row controls sit on a raised surface, not the photograph, so the dark
+     theme's 10 % hairline would vanish into the row beneath them. */
+  --control-border: var(--glass-border);
 
   --foreground: rgb(var(--ink));
   --muted-foreground: rgb(var(--ink-muted) / var(--alpha-ink-muted));
-  /* `highlight` in Figma carries two roles that diverge in dark mode: the
-     search button's fill goes darker, the temperature text goes lighter. */
+  /* Figma's `highlight` splits in dark mode: the button fill goes darker, the
+     temperature text lighter. */
   --accent-text: rgb(var(--violet));
   --primary: rgb(var(--violet));
   --primary-foreground: rgb(255 255 255);
@@ -69,9 +61,18 @@
   --destructive: rgb(190 40 40);
 
   --shadow-glass: 0 8px 32px rgb(0 0 0 / 0.12);
+  --shadow-control: 0 4px 12px rgb(0 0 0 / 0.1);
   --radius: 0.75rem;
   --radius-card: 1.5rem;
-  --radius-row: 0.875rem;
+  /* Shared by the search pill, both square controls and every history row.
+     A token, not per element, so one media query moves all five together. */
+  --radius-row: 8px;
+}
+
+@media (width >= 48rem) {
+  :root {
+    --radius-row: 20px;
+  }
 }
 
 .dark {
@@ -85,8 +86,10 @@
   --violet: 40 18 77;                     /* #28124D */
 
   --surface-input: var(--surface-raised);
+  --surface-scrim: rgb(0 0 0 / 0.5);
 
   --glass-border: rgb(255 255 255 / 0.1);
+  --control-border: rgb(255 255 255 / 0.4); /* #FFFFFF66 */
 
   --accent-text: rgb(255 255 255);
   --ring: rgb(255 255 255 / 0.8);
@@ -102,8 +105,11 @@
   --color-surface-panel: var(--surface-panel);
   --color-surface-row: var(--surface-row);
   --color-surface-input: var(--surface-input);
+  --color-surface-dialog: var(--surface-dialog);
+  --color-surface-scrim: var(--surface-scrim);
 
   --color-glass-border: var(--glass-border);
+  --color-control-border: var(--control-border);
 
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
@@ -120,11 +126,10 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
 
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  /* One variable file covers the 400 and 700 the design uses. */
+  --font-sans: "Noto Sans Variable", ui-sans-serif, system-ui, sans-serif;
 
-  /* Names the shadcn primitives reference, pointed back at the palette above
-     so there is still one source of truth per colour. Only the handful the
-     Button and Input actually use is defined. */
+  /* shadcn primitive names, pointed back at the palette above. */
   --color-background: var(--surface-card);
   --color-border: var(--glass-border);
   --color-input: var(--glass-border);
@@ -135,14 +140,9 @@
 
 
 /*
- * The frosted material: blur plus shadow, with fill and border left to
- * separate utilities.
- *
- * `backdrop-filter` compounds when nested — a blurred child of a blurred
- * parent blurs twice and costs an extra composited layer each time. The
- * history panel and its rows sit inside the weather card, so only the
- * outermost card and the standalone search bar carry this utility. Over an
- * already-blurred backdrop the inner surfaces look identical without it.
+ * `backdrop-filter` compounds when nested, so only the outermost card and the
+ * standalone search bar carry this; the panel and rows take fill and border
+ * only.
  */
 @utility glass {
   backdrop-filter: blur(var(--blur-glass));
@@ -161,12 +161,18 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* v4's preflight leaves buttons on `cursor: default`. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
-  /* Honour the OS setting rather than animating regardless. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

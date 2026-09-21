@@ -1,10 +1,4 @@
-/**
- * A transport-agnostic error taxonomy.
- *
- * The UI and the retry policy both branch on these types rather than on HTTP
- * status codes, so swapping the weather provider — or putting a BFF in front
- * of it — does not ripple past the API layer.
- */
+/** The UI and the retry policy branch on these, never on HTTP status. */
 export abstract class AppError extends Error {
   abstract readonly kind: string;
 }
@@ -60,10 +54,7 @@ export class UnknownApiError extends AppError {
   }
 }
 
-/**
- * Only failures that might resolve on their own are worth a second attempt.
- * Retrying a 404 or a bad key just delays the message the user needs to see.
- */
+/** Only failures that might resolve on their own are worth a second go. */
 export function isRetryable(error: unknown): boolean {
   return error instanceof NetworkError || error instanceof UnknownApiError;
 }

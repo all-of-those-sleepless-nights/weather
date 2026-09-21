@@ -8,8 +8,7 @@ import { createQueryClient } from "@/app/query-client";
 import { useSmoothScroll } from "@/app/use-smooth-scroll";
 
 function App() {
-  // Created once per app instance rather than at module scope, so tests get a
-  // clean cache per render.
+  // Per app instance, not module scope, so tests get a clean cache.
   const [queryClient] = useState(createQueryClient);
 
   useSmoothScroll();

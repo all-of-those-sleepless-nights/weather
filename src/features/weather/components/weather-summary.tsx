@@ -1,34 +1,15 @@
 import type { ReactNode } from "react";
+import { cn } from "cn";
 import { ValueSwap } from "@/components/motion/value-swap";
 import { formatPlace, formatTemperature, formatTimestamp } from "@/lib/format";
 import type { WeatherSnapshot } from "../model/types";
 
 type WeatherSummaryProps = {
-  /** Absent before the first reading, and while an error is being shown. */
   snapshot?: WeatherSnapshot;
-  /** True while a newer reading is in flight and this one is the old one. */
   isStale?: boolean;
-  /** The line under the heading: the opening prompt, or an error. */
   status?: ReactNode;
 };
 
-/**
- * The headline reading.
- *
- * The two mockups arrange the metadata differently — mobile as two columns,
- * desktop as one aligned row beneath the range. Rather than render both and
- * hide one, every fact appears in the DOM exactly once and is placed by
- * explicit grid coordinates per breakpoint. Duplicating the markup would
- * mean a screen reader announcing the humidity twice.
- *
- * With no reading the values are left out altogether rather than filled with
- * placeholders: a column of dashes is noise, and the status line underneath
- * the heading already says why there is nothing there.
- *
- * Each value cross-fades on change rather than cutting. The previous reading
- * stays on screen while the next loads, dimmed, so the numbers change in
- * place.
- */
 export function WeatherSummary({
   snapshot,
   isStale = false,
@@ -38,22 +19,38 @@ export function WeatherSummary({
     <div
       className={`transition-opacity duration-300 ${isStale ? "opacity-50" : "opacity-100"}`}
     >
-      <h2 className="text-sm font-medium text-foreground sm:text-base">
+      <h2 className="text-sm font-medium text-foreground md:text-base">
         Today&rsquo;s Weather
       </h2>
 
-      {/* Kept clear of the illustration, which overlaps the card's top-right
-          corner and would otherwise swallow the end of a long message. */}
-      {status ? <div className="mt-2 sm:max-w-[20rem]">{status}</div> : null}
+      {status ? <div className="mt-2 md:max-w-[20rem]">{status}</div> : null}
 
       {snapshot ? <WeatherReadings snapshot={snapshot} /> : null}
     </div>
   );
 }
 
-function WeatherReadings({ snapshot }: { snapshot: WeatherSnapshot }) {
+type Reading = {
+  /** The `<dt>`: names the value for assistive tech, hidden on screen. */
+  term: string;
+  /** Changing this cross-fades the cell. */
+  swapKey: string;
+  value: ReactNode;
+  /** Grid placement, one clause per arrangement. */
+  cell: string;
+  /** Typography on the `<dd>`, over the muted default. */
+  tone?: string;
+  /** Alignment handed to the cross-fade wrapper. */
+  align?: string;
+};
+
+/** The trailing column: right-aligned beside its label, left-aligned once
+ *  the grid drops to one column. */
+const TRAILING_CELL = "justify-self-end narrow:col-start-1 narrow:justify-self-start";
+const TRAILING_ALIGN = "justify-items-end narrow:justify-items-start";
+
+function readingsFor(snapshot: WeatherSnapshot): Reading[] {
   const observedAtIso = snapshot.observedAt.toISOString();
-  const temperature = formatTemperature(snapshot.temperatureC);
   const range = `H: ${formatTemperature(snapshot.highC)} L: ${formatTemperature(snapshot.lowC)}`;
   const place = formatPlace(snapshot.city, snapshot.countryCode);
   const humidity = `Humidity: ${snapshot.humidityPercent}%`;
@@ -62,56 +59,70 @@ function WeatherReadings({ snapshot }: { snapshot: WeatherSnapshot }) {
     snapshot.utcOffsetSeconds,
   );
 
+  // Listed in the order a phone reads them: left to right, top to bottom.
+  return [
+    {
+      term: "Range",
+      swapKey: range,
+      value: range,
+      cell: "col-start-1 row-start-1 narrow:text-center @xl:col-span-4 @xl:col-start-1 @xl:row-start-1",
+      tone: "text-foreground @xl:text-base",
+    },
+    {
+      term: "Conditions",
+      swapKey: snapshot.condition,
+      value: snapshot.condition,
+      cell: `col-start-2 row-start-1 narrow:row-start-3 @xl:col-start-4 @xl:row-start-2 @xl:justify-self-end ${TRAILING_CELL}`,
+      align: TRAILING_ALIGN,
+    },
+    {
+      term: "Location",
+      swapKey: place,
+      value: place,
+      cell: "col-start-1 row-start-2 @xl:col-start-1 @xl:row-start-2",
+      tone: "font-semibold",
+    },
+    {
+      term: "Humidity",
+      swapKey: humidity,
+      value: humidity,
+      cell: `col-start-2 row-start-2 narrow:row-start-4 @xl:col-start-3 @xl:row-start-2 @xl:justify-self-end ${TRAILING_CELL}`,
+      align: TRAILING_ALIGN,
+    },
+    {
+      term: "Observed at",
+      swapKey: observedAtIso,
+      value: <time dateTime={observedAtIso}>{timestamp}</time>,
+      cell: `col-start-2 row-start-3 narrow:row-start-5 @xl:col-start-2 @xl:row-start-2 @xl:justify-self-start ${TRAILING_CELL}`,
+      tone: "@max-xl:text-right narrow:text-left",
+      align: `${TRAILING_ALIGN} @xl:justify-items-start`,
+    },
+  ];
+}
+
+function WeatherReadings({ snapshot }: { snapshot: WeatherSnapshot }) {
+  const temperature = formatTemperature(snapshot.temperatureC);
+
   return (
     <>
-      <p className="mt-1 text-[clamp(3.25rem,13vw,5.5rem)] font-bold leading-none tracking-tight text-accent-text">
+      <p className="mt-1 text-[clamp(3.75rem,13vw,5.5rem)] font-bold leading-none tracking-tight text-accent-text narrow:text-center">
         <ValueSwap swapKey={temperature}>{temperature}</ValueSwap>
       </p>
 
-      <dl className="mt-3 grid grid-cols-2 items-baseline gap-x-6 gap-y-1 sm:mt-4 sm:grid-cols-[auto_auto_1fr_auto] sm:gap-y-2">
-        <div className="col-start-1 row-start-1 sm:col-span-4 sm:col-start-1 sm:row-start-1">
-          <dt className="sr-only">Range</dt>
-          <dd className="text-sm text-foreground sm:text-base">
-            <ValueSwap swapKey={range}>{range}</ValueSwap>
-          </dd>
-        </div>
-
-        <div className="col-start-2 row-start-1 justify-self-end sm:col-start-4 sm:row-start-2 sm:justify-self-end">
-          <dt className="sr-only">Conditions</dt>
-          <dd className="text-sm text-muted-foreground sm:text-base">
-            <ValueSwap swapKey={snapshot.condition} className="justify-items-end">
-              {snapshot.condition}
-            </ValueSwap>
-          </dd>
-        </div>
-
-        <div className="col-start-1 row-start-2 sm:col-start-1 sm:row-start-2">
-          <dt className="sr-only">Location</dt>
-          <dd className="text-sm font-semibold text-accent-text sm:text-base">
-            <ValueSwap swapKey={place}>{place}</ValueSwap>
-          </dd>
-        </div>
-
-        <div className="col-start-2 row-start-2 justify-self-end sm:col-start-3 sm:row-start-2 sm:justify-self-end">
-          <dt className="sr-only">Humidity</dt>
-          <dd className="text-sm text-muted-foreground sm:text-base">
-            <ValueSwap swapKey={humidity} className="justify-items-end">
-              {humidity}
-            </ValueSwap>
-          </dd>
-        </div>
-
-        <div className="col-start-2 row-start-3 justify-self-end sm:col-start-2 sm:row-start-2 sm:justify-self-start">
-          <dt className="sr-only">Observed at</dt>
-          <dd className="text-sm text-muted-foreground sm:text-base">
-            <ValueSwap
-              swapKey={observedAtIso}
-              className="justify-items-end sm:justify-items-start"
-            >
-              <time dateTime={observedAtIso}>{timestamp}</time>
-            </ValueSwap>
-          </dd>
-        </div>
+      {/* One description list, three arrangements: one column below 400px, two
+          on a phone, one row once the card itself clears 576px. Each entry is
+          placed by grid coordinate, so it appears in the DOM exactly once. */}
+      <dl className="text-sm @xl:text-lg mt-1 grid grid-cols-2 narrow:grid-cols-1 items-baseline gap-x-6 @xl:gap-x-4 gap-y-1 @xl:grid-cols-[auto_auto_1fr_auto] @xl:gap-y-1">
+        {readingsFor(snapshot).map(({ term, swapKey, value, cell, tone, align }) => (
+          <div key={term} className={cell}>
+            <dt className="sr-only">{term}</dt>
+            <dd className={cn("text-muted-foreground/70", tone)}>
+              <ValueSwap swapKey={swapKey} className={align}>
+                {value}
+              </ValueSwap>
+            </dd>
+          </div>
+        ))}
       </dl>
     </>
   );

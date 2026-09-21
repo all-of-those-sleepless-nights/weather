@@ -14,11 +14,21 @@ describe("validatePlaceQuery", () => {
     });
   });
 
-  it("accepts a spelled-out country, which the geocoder also resolves", () => {
-    expect(validatePlaceQuery("Kuala Lumpur, Malaysia")).toEqual({
+  it("normalises the country code to upper case", () => {
+    expect(validatePlaceQuery("Johor, my")).toEqual({
       ok: true,
-      query: { city: "Kuala Lumpur", countryCode: "Malaysia" },
+      query: { city: "Johor", countryCode: "MY" },
     });
+  });
+
+  it("rejects a spelled-out country, which the geocoder silently drops", () => {
+    expect(message("Kuala Lumpur, Malaysia")).toMatch(/two-letter country code/i);
+    expect(message("test, what the duck")).toMatch(/two-letter country code/i);
+  });
+
+  it("rejects two letters that are not an assigned ISO code", () => {
+    expect(message("London, UK")).toMatch(/not a country code/i);
+    expect(message("Asdfgh, ZZ")).toMatch(/not a country code/i);
   });
 
   it("treats the country as optional", () => {
@@ -31,7 +41,7 @@ describe("validatePlaceQuery", () => {
   it("normalises spacing so the cache key is stable", () => {
     expect(validatePlaceQuery("  kuala   lumpur ,  my ")).toEqual({
       ok: true,
-      query: { city: "kuala lumpur", countryCode: "my" },
+      query: { city: "kuala lumpur", countryCode: "MY" },
     });
   });
 
@@ -41,8 +51,19 @@ describe("validatePlaceQuery", () => {
     expect(validatePlaceQuery("L'Aquila, IT").ok).toBe(true);
   });
 
-  it("rejects a full stop, which the mask turns into the separator", () => {
-    expect(message("St. Louis")).toMatch(/letters, spaces/i);
+  it("accepts the full stop that abbreviated place names carry", () => {
+    expect(validatePlaceQuery("St. Louis, US")).toEqual({
+      ok: true,
+      query: { city: "St. Louis", countryCode: "US" },
+    });
+  });
+
+  it("accepts the digits that dated place names carry", () => {
+    expect(validatePlaceQuery("25 de Mayo, AR")).toEqual({
+      ok: true,
+      query: { city: "25 de Mayo", countryCode: "AR" },
+    });
+    expect(validatePlaceQuery("Villa 25 de Mayo, AR").ok).toBe(true);
   });
 
   it("rejects a blank city", () => {

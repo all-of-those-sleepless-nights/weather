@@ -3,10 +3,8 @@ import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { server } from "./msw-server";
 
-// jsdom implements none of this, and it is read during render. Reduced motion
-// is reported as preferred so the suite exercises the static branch of every
-// animation: presence wrappers are dropped, leaving one node per icon in the
-// accessibility tree rather than two mid-transition.
+// jsdom has no matchMedia. Reduced motion is reported as preferred so the
+// suite sees one node per icon rather than two mid-transition.
 vi.stubGlobal(
   "matchMedia",
   vi.fn().mockImplementation((query: string) => ({
